@@ -1,0 +1,31 @@
+---
+title: "PRUEBA"
+author: "María de los Ángeles Díaz Castro"
+date: "2025-11-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(seewave)
+library(tuneR)
+```
+
+```{r}
+o1<-readWave('Audioswav/Oscar a1.wav')
+plot(o1)
+```
+
+```{r}
+spectro(o1,f=o1@samp.rate,wl=128,wn='hanning',ovlp=50,osc=TRUE,flim=c(0,2))
+```
+
+```{r}
+fm<-o1@samp.rate
+wlen<-0.02*fm # 20 ms
+zcr<-zcr(o1,wl=wlen,ovlp=50,plot=T)
+```
+
