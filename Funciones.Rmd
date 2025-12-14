@@ -18,47 +18,69 @@ library(tuneR)
 # PERIOD PITCH
 
 ```{r}
-period_pitch <- function(signal, fs, fmin = 80, fmax = 300) {
-  # Quitar la media (mejora resultados)
+period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
+
+  # --- Convertir Wave a vector numérico ---
+  if (inherits(signal, "Wave")) {
+    if (is.null(fs)) fs <- signal@samp.rate
+
+    # Si es estéreo: promedio de canales (mono manual)
+    if (isTRUE(signal@stereo)) {
+      x <- (as.numeric(signal@left) + as.numeric(signal@right)) / 2
+    } else {
+      x <- as.numeric(signal@left)
+    }
+
+    signal <- x
+  } else {
+    signal <- as.numeric(signal)
+  }
+
+  # Quitar NA por si acaso
+  signal <- signal[is.finite(signal)]
+
+  # Centrar señal
   signal <- signal - mean(signal)
-  
-  # Autocorrelación
-  ac <- acf(signal, plot = FALSE)$acf
-  ac <- ac[-1]  # quitamos el lag 0
-  
-  # Convertir rango de frecuencias a lags
+
+  n <- length(signal)
+  if (n < 10) stop("La señal tiene muy pocas muestras tras la conversión (n < 10).")
+
+  # --- Lags según rango de F0 esperado ---
   lag_min <- floor(fs / fmax)
   lag_max <- ceiling(fs / fmin)
-  
-  # Buscar el máximo en ese rango
+
+  # No podemos pedir lags >= n
+  lag_max <- min(lag_max, n - 1)
+
+  if (lag_min >= lag_max) {
+    stop(sprintf("Señal demasiado corta (n=%d) para ese rango: lag_min=%d, lag_max=%d. fs=%s",
+                 n, lag_min, lag_max, fs))
+  }
+
+  # CLAVE: pedir a acf que calcule hasta lag_max
+  ac <- as.numeric(acf(signal, lag.max = lag_max, plot = FALSE)$acf)
+  ac <- ac[-1]  # quitar lag 0
+
   lag <- which.max(ac[lag_min:lag_max]) + lag_min - 1
-  
-  # Periodo fundamental (en segundos)
   period <- lag / fs
-  
-  # Frecuencia fundamental (Hz)
   pitch <- 1 / period
-  
-  return(list(
-    period = period,
-    pitch = pitch
-  ))
+
+  list(period = period, pitch = pitch, lag = lag, fs = fs, n = n)
 }
+
 
 ```
 
 ```{r}
-#EJEMPLO 
+o1 <- readWave("Audioswav/Oscar a1.wav")
+res <- period_pitch(o1)
+res$pitch
 
-o1<-readWave('Audioswav/Oscar a1.wav')
-plot(o1)
-
-fs <- o1@samp.rate       # frecuencia de muestreo
-
-result <- period_pitch(o1, fs)
-
-result$pitch   # frecuencia fundamental (Hz)
-result$period  # periodo fundamental (s)
+```
+```{r}
+a1 <- readWave("Audioswav/Aza a1.wav")
+res <- period_pitch(a1)
+res$pitch
 
 ```
 
