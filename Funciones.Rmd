@@ -1,0 +1,64 @@
+---
+title: "Funciones"
+author: "Azahara Martinez"
+date: "2025-12-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(seewave)
+library(tuneR)
+```
+
+
+# PERIOD PITCH
+
+```{r}
+period_pitch <- function(signal, fs, fmin = 80, fmax = 300) {
+  # Quitar la media (mejora resultados)
+  signal <- signal - mean(signal)
+  
+  # Autocorrelación
+  ac <- acf(signal, plot = FALSE)$acf
+  ac <- ac[-1]  # quitamos el lag 0
+  
+  # Convertir rango de frecuencias a lags
+  lag_min <- floor(fs / fmax)
+  lag_max <- ceiling(fs / fmin)
+  
+  # Buscar el máximo en ese rango
+  lag <- which.max(ac[lag_min:lag_max]) + lag_min - 1
+  
+  # Periodo fundamental (en segundos)
+  period <- lag / fs
+  
+  # Frecuencia fundamental (Hz)
+  pitch <- 1 / period
+  
+  return(list(
+    period = period,
+    pitch = pitch
+  ))
+}
+
+```
+
+```{r}
+#EJEMPLO 
+
+o1<-readWave('Audioswav/Oscar a1.wav')
+plot(o1)
+
+fs <- o1@samp.rate       # frecuencia de muestreo
+
+result <- period_pitch(o1, fs)
+
+result$pitch   # frecuencia fundamental (Hz)
+result$period  # periodo fundamental (s)
+
+```
+
