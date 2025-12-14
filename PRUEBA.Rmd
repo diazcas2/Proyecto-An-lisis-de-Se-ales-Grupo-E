@@ -29,3 +29,100 @@ wlen<-0.02*fm # 20 ms
 zcr<-zcr(o1,wl=wlen,ovlp=50,plot=T)
 ```
 
+CREACIÓN DEL DATAFRAME SUPONIENDO QUE LOS AUDIOS ESTÁN EN WAV:
+
+```{r}
+voces_df <- data.frame(
+  señal = character(),
+  sexo = character(),
+  acento = character(),
+  duracion = numeric(),
+  f0_mean = numeric(),
+  f0_sd = numeric(),
+  zcr = numeric(),
+  energia_rms = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# SEXO: M/F
+# ACENTO: AN(andaluz)/AR(argentino)/N
+
+añadir_voz <- function(df, ruta_wav) {
+  
+  # Leer audio
+  audio <- readWave(ruta_wav)
+  fs <- audio@samp.rate
+  señal_audio <- audio@left
+  
+  # Duración
+  duracion <- length(señal_audio) / fs
+  
+ # ===== F0 BIEN HECHA =====
+f0 <- fund(
+  señal_audio,
+  f = fs,
+  method = "yin",
+  fmin = 80,
+  fmax = 300,
+  plot = FALSE
+)
+
+# La F0 está en la SEGUNDA columna
+f0_vals <- f0[, 2]
+
+# Quitamos valores no válidos
+f0_vals <- f0_vals[!is.na(f0_vals)]
+
+if (length(f0_vals) < 10) {
+  f0_mean <- NA
+  f0_sd <- NA
+} else {
+  f0_mean <- mean(f0_vals)
+  f0_sd <- sd(f0_vals)
+}
+# ========================
+
+  # Zero Crossing Rate
+ zcr <- mean(zcr(señal_audio, f = fs))
+  
+  # Energía RMS
+  energia_rms <- sqrt(mean(señal_audio^2))
+  
+  # Etiquetas manuales
+  sexo <- readline("Sexo (M/F): ")
+  while (!sexo %in% c("M", "F")) {
+    sexo <- readline("Error. Escribe 'M' o 'F': ")
+  }
+  
+  acento <- readline("Tipo de acento (AN/AR/N) ")
+  while (!acento %in% c("AN", "AR","N")) {
+    acento <- readline("Error. Escribe 'AN' o 'AR' o 'N': ")
+  }
+  
+  # Nueva fila
+  nueva_fila <- data.frame(
+    señal = basename(ruta_wav),
+    sexo = sexo,
+    acento = acento,
+    duracion = duracion,
+    f0_mean = f0_mean,
+    f0_sd = f0_sd,
+    zcr = zcr,
+    energia_rms = energia_rms,
+    stringsAsFactors = FALSE
+  )
+  
+  df <- rbind(df, nueva_fila)
+  return(df)
+}
+
+
+```
+
+EJEMPLO:
+```{r}
+voces_df <- añadir_voz(voces_df, "Audioswav/alvaro a1.wav")
+```
+
+
+
