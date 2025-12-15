@@ -1,0 +1,79 @@
+---
+title: "Funcion para leer audios"
+author: "Florencia Pellegrini"
+date: "2025-12-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Honestamente no me acuerdo en que configuración estaban los audios, pero ns porque me suena que mp4 (F si era otro)
+
+```{r}
+install.packages("av")
+install.packages("tuneR")
+
+library(av)
+library(tuneR)
+library(seewave)
+```
+
+Hago la función para convertir los audios a wav.
+
+Parametros de la función:
+input_mp4: ruta del archivo de entrada.
+sample_rate: frecuencia de muestreo del audio de salida, en Hz (16 000 Hz = 16 kHz).
+```{r}
+library(av)
+
+convertir_mp4_a_wave <- function(input_mp4, sample_rate = 16000) {
+  
+  # Nombre del archivo sin extensión
+  base_name <- tools::file_path_sans_ext(basename(input_mp4))
+  
+  # Ruta de salida dentro de Audioswav
+  output_wav <- file.path("Audioswav", paste0(base_name, ".wav"))
+  
+  av_audio_convert(
+    input       = input_mp4,
+    output      = output_wav,
+    channels    = 1,
+    sample_rate = sample_rate
+  )
+  
+  return(output_wav) #ruta de salida
+}
+```
+
+```{r}
+caracs_wav <- function(carpeta, patron = "\\.wav$") {
+  #1. Lista de archivos .wav de la carpeta
+  archivos <- list.files(carpeta, pattern = patron, full.names = TRUE)
+  
+  # 2. Recorrer cada archivo y sacar sus caracs
+  resultados <- lapply(archivos, function(f) {
+    wave <- readWave(f)
+    
+    # señal en mono (por si acaso)
+    x <- wave@left
+    fm <- wave@samp.rate
+    
+    #características básicas
+    duracion <- length(x) / fm              # en segundos
+    amp_media <- mean(abs(x))               # amplitud media
+    
+    data.frame(
+      archivo   = basename(f),
+      duracion  = duracion,
+      #se podrian añadir mas
+    )
+  })
+  
+  # 3. Unir todo en un data.frame
+  do.call(rbind, resultados)
+}
+
+```
+
