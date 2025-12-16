@@ -17,6 +17,22 @@ library(tuneR)
 
 # PERIOD PITCH
 
+El pitch es básicamente la frecuencia fundamental (vibración más baja, la base sobre la que se ocnstruyen el resto de vibraciones). 
+
+La frecuencia fundamental es la más característica porque es la base estable de la voz, independientemente de si hablas más fuerte o más suave. Las vibraciones más altas (los armónicos) cambian con el tono o la intensidad, pero la fundamental te da la identidad básica de la voz.
+
+Mide qué tan grave o qué tan aguda suena una voz. 
+- Voz grave → pitch bajo (frecuencias bajas)
+ -Voz aguda → pitch alto (frecuencias altas)
+
+Se mide en Hz (vibraciones por segundo). 
+
+Valores típicos:
+- Hombres: más o menos 100–150 Hz
+- Mujeres: más o menos 180–250 Hz
+
+El period pitch se calcula estimando el periodo fundamental de la señal mediante autocorrelación. Este método permite detectar la periodicidad principal de la voz, a partir de la cual se obtiene la frecuencia fundamental, que está directamente relacionada con la percepción de la altura tonal de la voz. Solo funciona bien en partes sonoras (vocales).
+
 ```{r}
 period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
 
