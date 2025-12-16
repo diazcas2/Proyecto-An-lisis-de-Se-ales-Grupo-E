@@ -33,6 +33,7 @@ Valores típicos:
 
 El period pitch se calcula estimando el periodo fundamental de la señal mediante autocorrelación. Este método permite detectar la periodicidad principal de la voz, a partir de la cual se obtiene la frecuencia fundamental, que está directamente relacionada con la percepción de la altura tonal de la voz. Solo funciona bien en partes sonoras (vocales).
 
+
 ```{r}
 period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
 
@@ -40,7 +41,6 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
   if (inherits(signal, "Wave")) {
     if (is.null(fs)) fs <- signal@samp.rate
 
-    # Si es estéreo: promedio de canales (mono manual)
     if (isTRUE(signal@stereo)) {
       x <- (as.numeric(signal@left) + as.numeric(signal@right)) / 2
     } else {
@@ -52,38 +52,43 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
     signal <- as.numeric(signal)
   }
 
-  # Quitar NA por si acaso
   signal <- signal[is.finite(signal)]
-
-  # Centrar señal
   signal <- signal - mean(signal)
 
   n <- length(signal)
-  if (n < 10) stop("La señal tiene muy pocas muestras tras la conversión (n < 10).")
+  if (n < 10) stop("La señal tiene muy pocas muestras.")
 
-  # --- Lags según rango de F0 esperado ---
+  # --- Lags según F0 esperado ---
   lag_min <- floor(fs / fmax)
   lag_max <- ceiling(fs / fmin)
-
-  # No podemos pedir lags >= n
   lag_max <- min(lag_max, n - 1)
 
-  if (lag_min >= lag_max) {
-    stop(sprintf("Señal demasiado corta (n=%d) para ese rango: lag_min=%d, lag_max=%d. fs=%s",
-                 n, lag_min, lag_max, fs))
-  }
+  if (lag_min >= lag_max) stop("Señal demasiado corta para estimar pitch.")
 
-  # CLAVE: pedir a acf que calcule hasta lag_max
   ac <- as.numeric(acf(signal, lag.max = lag_max, plot = FALSE)$acf)
-  ac <- ac[-1]  # quitar lag 0
+  ac <- ac[-1]
 
   lag <- which.max(ac[lag_min:lag_max]) + lag_min - 1
   period <- lag / fs
   pitch <- 1 / period
 
-  list(period = period, pitch = pitch, lag = lag, fs = fs, n = n)
-}
+  # --- Clasificación por pitch ---
+  gender <- if (pitch < 160) {
+    "Masculina"
+  } else if (pitch > 180) {
+    "Femenina"
+  } else {
+    "Indeterminado"
+  }
 
+  list(
+    period = period,
+    pitch = pitch,
+    gender = gender,
+    fs = fs,
+    n = n
+  )
+}
 
 ```
 
@@ -91,43 +96,51 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
 o1 <- readWave("Audioswav/Oscar a1.wav")
 res <- period_pitch(o1)
 res$pitch
+res$gender
 
 ```
 ```{r}
 a1 <- readWave("Audioswav/Aza a1.wav")
 res <- period_pitch(a1)
 res$pitch
+res$gender
 
 ```
 ```{r}
 i1 <- readWave("Audioswav/Iyan a1.wav")
 res <- period_pitch(i1)
 res$pitch
+res$gender
 ```
 ```{r}
 m1 <- readWave("Audioswav/MAngeles a1.wav")
 res <- period_pitch(m1)
 res$pitch
+res$gender
 ```
 
 ```{r}
 A1 <- readWave("Audioswav/alvaro a1.wav")
 res <- period_pitch(A1)
 res$pitch
+res$gender
 ```
 ```{r}
 f1 <- readWave("Audioswav/Flor a1.wav")
 res <- period_pitch(f1)
 res$pitch
+res$gender
 ```
 ```{r}
 ia1 <- readWave("Audioswav/Beatriz a1.wav")
 res <- period_pitch(ia1)
 res$pitch
+res$gender
 ```
 
 ```{r}
 en1 <- readWave("Audioswav/Enrique a1.wav")
 res <- period_pitch(en1)
 res$pitch
+res$gender
 ```
