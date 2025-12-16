@@ -83,4 +83,35 @@ res <- period_pitch(a1)
 res$pitch
 
 ```
+```{r}
+i1 <- readWave("Audioswav/Iyan a1.wav")
+res <- period_pitch(i1)
+res$pitch
+```
+```{r}
+m1 <- readWave("Audioswav/MAngeles a1.wav")
+res <- period_pitch(m1)
+res$pitch
+```
 
+```{r}
+A1 <- readWave("Audioswav/alvaro a1.wav")
+res <- period_pitch(A1)
+res$pitch
+```
+```{r}
+f1 <- readWave("Audioswav/Flor a1.wav")
+res <- period_pitch(f1)
+res$pitch
+```
+```{r}
+ia1 <- readWave("Audioswav/Beatriz a1.wav")
+res <- period_pitch(ia1)
+res$pitch
+```
+
+```{r}
+en1 <- readWave("Audioswav/Enrique a1.wav")
+res <- period_pitch(en1)
+res$pitch
+```
