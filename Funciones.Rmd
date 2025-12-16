@@ -27,9 +27,20 @@ Mide qué tan grave o qué tan aguda suena una voz.
 
 Se mide en Hz (vibraciones por segundo). 
 
-Valores típicos:
-- Hombres: más o menos 100–150 Hz
-- Mujeres: más o menos 180–250 Hz
+Valores típicos según la **literatura consultada**:
+
+Rabiner, L. R., & Schafer, R. W. (1978). Digital Processing of Speech Signals. Prentice-Hall.
+  - hombres: ~85–180 Hz
+  - mujeres: ~165–255 Hz
+  
+Basu, Akashlina & Ahuja, Pooja & Dahiya,. (2020). Estimation of Pitch and Fundamental Frequency Variation Between Normal Males, Females and Intersex Population. Indian Journal of Forensic Medicine & Toxicology. 14. 1042.
+  - masculine voice ranges from 90-150 Hz 
+  - feminine voice, it ranges from 190-240 Hz.
+  
+Así pues, se han definido como **umbrales prácticos** basados en rangos reportados en la literatura, incorporando una zona de solapamiento para evitar clasificaciones forzadas:
+  - Masculina: 85- 170 Hz
+  - Femenina: 180 - 240 Hz
+
 
 El period pitch se calcula estimando el periodo fundamental de la señal mediante autocorrelación. Este método permite detectar la periodicidad principal de la voz, a partir de la cual se obtiene la frecuencia fundamental, que está directamente relacionada con la percepción de la altura tonal de la voz. Solo funciona bien en partes sonoras (vocales).
 
@@ -73,7 +84,7 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
   pitch <- 1 / period
 
   # --- Clasificación por pitch ---
-  gender <- if (pitch < 160) {
+  gender <- if (pitch < 170) {
     "Masculina"
   } else if (pitch > 180) {
     "Femenina"
