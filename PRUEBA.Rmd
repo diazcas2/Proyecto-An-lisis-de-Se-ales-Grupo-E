@@ -15,37 +15,118 @@ library(tuneR)
 ```
 
 ```{r}
-o1<-readWave('Audioswav/Oscar a1.wav')
-plot(o1)
+reglas_nombres <- data.frame(
+  nombre = c("alvaro", "Oscar", "Iyan", "MAngeles", "aza","Flor","Beatriz","Enrique"),
+  sexo   = c("M",      "M",     "M",    "F",     "F", "F","F","M"),
+  origen = c("P",      "P",     "P",    "P",     "P","P","IA","IA"),
+  acento=c("AN","N","N","AN","N","AR","N","N"),
+  stringsAsFactors = FALSE
+)
+
+reglas_nombres$nombre <- tolower(gsub("\\s+", "", reglas_nombres$nombre))
+
 ```
 
 ```{r}
-spectro(o1,f=o1@samp.rate,wl=128,wn='hanning',ovlp=50,osc=TRUE,flim=c(0,2))
+etiquetar_por_nombre <- function(nombre_archivo, reglas) {
+  
+  for (i in seq_len(nrow(reglas))) {
+    if (grepl(reglas$nombre[i], nombre_archivo)) {
+      return(list(
+        sexo = reglas$sexo[i],
+        origen = reglas$origen[i],
+        acento=reglas$acento[i]
+      ))
+    }
+  }
+  
+  return(list(
+    sexo = NA,
+    origen = NA,
+    acento=NA
+  ))
+}
 ```
 
+PERIOD PITCH AZAHARA: 
 ```{r}
-fm<-o1@samp.rate
-wlen<-0.02*fm # 20 ms
-zcr<-zcr(o1,wl=wlen,ovlp=50,plot=T)
+period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
+
+  # --- Convertir Wave a vector numérico ---
+  if (inherits(signal, "Wave")) {
+    if (is.null(fs)) fs <- signal@samp.rate
+
+    if (isTRUE(signal@stereo)) {
+      x <- (as.numeric(signal@left) + as.numeric(signal@right)) / 2
+    } else {
+      x <- as.numeric(signal@left)
+    }
+
+    signal <- x
+  } else {
+    signal <- as.numeric(signal)
+  }
+
+  signal <- signal[is.finite(signal)]
+  signal <- signal - mean(signal)
+
+  n <- length(signal)
+  if (n < 10) stop("La señal tiene muy pocas muestras.")
+
+  # --- Lags según F0 esperado ---
+  lag_min <- floor(fs / fmax)
+  lag_max <- ceiling(fs / fmin)
+  lag_max <- min(lag_max, n - 1)
+
+  if (lag_min >= lag_max) stop("Señal demasiado corta para estimar pitch.")
+
+  ac <- as.numeric(acf(signal, lag.max = lag_max, plot = FALSE)$acf)
+  ac <- ac[-1]
+
+  lag <- which.max(ac[lag_min:lag_max]) + lag_min - 1
+  period <- lag / fs
+  pitch <- 1 / period
+
+  # --- Clasificación por pitch ---
+  gender <- if (pitch < 170) {
+    "M"
+  } else if (pitch > 180) {
+    "F"
+  } else {
+    "Indeterminado"
+  }
+
+  list(
+    period = period,
+    pitch = pitch,
+    gender = gender,
+    fs = fs,
+    n = n
+  )
+}
+
 ```
 
-CREACIÓN DEL DATAFRAME SUPONIENDO QUE LOS AUDIOS ESTÁN EN WAV:
+
+CREACIÓN DEL DATAFRAME SUPONIENDO QUE LOS AUDIOS ESTÁN EN WAV Y AÑADIENDO LA PREDICCIÓN: 
 
 ```{r}
 voces_df <- data.frame(
   señal = character(),
   sexo = character(),
+  origen = character(),
   acento = character(),
   duracion = numeric(),
-  f0_mean = numeric(),
-  f0_sd = numeric(),
   zcr = numeric(),
   energia_rms = numeric(),
+  pitch = numeric(),        
+  PREDICCIÓN_SEXO = character(),
   stringsAsFactors = FALSE
 )
 
 # SEXO: M/F
 # ACENTO: AN(andaluz)/AR(argentino)/N
+# ORIGEN: P(persona)/IA
 
 añadir_voz <- function(df, ruta_wav) {
   
@@ -57,58 +138,38 @@ añadir_voz <- function(df, ruta_wav) {
   # Duración
   duracion <- length(señal_audio) / fs
   
- # ===== F0 BIEN HECHA =====
-f0 <- fund(
-  señal_audio,
-  f = fs,
-  method = "yin",
-  fmin = 80,
-  fmax = 300,
-  plot = FALSE
-)
-
-# La F0 está en la SEGUNDA columna
-f0_vals <- f0[, 2]
-
-# Quitamos valores no válidos
-f0_vals <- f0_vals[!is.na(f0_vals)]
-
-if (length(f0_vals) < 10) {
-  f0_mean <- NA
-  f0_sd <- NA
-} else {
-  f0_mean <- mean(f0_vals)
-  f0_sd <- sd(f0_vals)
-}
-# ========================
-
   # Zero Crossing Rate
- zcr <- mean(zcr(señal_audio, f = fs))
+ zcr <- mean(zcr(señal_audio, f = fs,plot = F))
   
   # Energía RMS
   energia_rms <- sqrt(mean(señal_audio^2))
   
-  # Etiquetas manuales
-  sexo <- readline("Sexo (M/F): ")
-  while (!sexo %in% c("M", "F")) {
-    sexo <- readline("Error. Escribe 'M' o 'F': ")
-  }
+  # Etiquetas 
+  nombre_archivo <- tolower(basename(ruta_wav))
+  nombre_archivo <- gsub("\\s+", "", nombre_archivo)
+
+  etiquetas <- etiquetar_por_nombre(nombre_archivo, reglas_nombres)
+
+  sexo <- etiquetas$sexo
+  origen <- etiquetas$origen
+  acento<-etiquetas$acento
   
-  acento <- readline("Tipo de acento (AN/AR/N) ")
-  while (!acento %in% c("AN", "AR","N")) {
-    acento <- readline("Error. Escribe 'AN' o 'AR' o 'N': ")
-  }
+  #PERIOD PITCH:
+  pitch_res <- period_pitch(audio)
+  pitch <- pitch_res$pitch
+  pitch_gender <- pitch_res$gender
   
   # Nueva fila
   nueva_fila <- data.frame(
     señal = basename(ruta_wav),
     sexo = sexo,
+    origen=origen,
     acento = acento,
     duracion = duracion,
-    f0_mean = f0_mean,
-    f0_sd = f0_sd,
     zcr = zcr,
     energia_rms = energia_rms,
+    period_pitch = pitch,
+    PREDICCIÓN_SEXO = pitch_gender,
     stringsAsFactors = FALSE
   )
   
@@ -119,10 +180,29 @@ if (length(f0_vals) < 10) {
 
 ```
 
-EJEMPLO:
+METER TODA LA CARPETA EN EL DATAFRAME:
 ```{r}
-voces_df <- añadir_voz(voces_df, "Audioswav/alvaro a1.wav")
+df_carpeta <- function(df, carpeta) {
+  archivos <- list.files(
+    path = carpeta,
+    pattern = "\\.wav$",
+    full.names = TRUE
+  )
+  
+  for (ruta in archivos) {
+    df <- añadir_voz(df, ruta)
+  }
+  
+  return(df)
+}
+
+
 ```
 
-
+DF_CARPETA:
+```{r}
+voces_df <- df_carpeta(voces_df, "Audioswav")
+voces_df$sexo==voces_df$PREDICCIÓN_SEXO
+ ```
+ 
 
