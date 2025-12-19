@@ -203,6 +203,7 @@ DF_CARPETA:
 ```{r}
 voces_df <- df_carpeta(voces_df, "Audioswav")
 voces_df$sexo==voces_df$PREDICCIÓN_SEXO
- ```
- 
+```
+
+
 
