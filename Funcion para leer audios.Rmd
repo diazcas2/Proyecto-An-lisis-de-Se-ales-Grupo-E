@@ -9,8 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Honestamente no me acuerdo en que configuración estaban los audios, pero ns porque me suena que mp4 (F si era otro)
-
 ```{r}
 install.packages("av")
 install.packages("tuneR")
@@ -21,59 +19,57 @@ library(seewave)
 ```
 
 Hago la función para convertir los audios a wav.
-
-Parametros de la función:
-input_mp4: ruta del archivo de entrada.
-sample_rate: frecuencia de muestreo del audio de salida, en Hz (16 000 Hz = 16 kHz).
 ```{r}
-library(av)
+# Convierte un archivo .m4a a .wav y lo guarda en la carpeta "Audioswav_prueba"
+# Parámetros:
+#  - input_m4a: ruta del archivo .m4a de entrada
+#  - sample_rate: frecuencia de muestreo del audio de salida (Hz)
 
-convertir_mp4_a_wave <- function(input_mp4, sample_rate = 16000) {
+convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
+  # Crear carpeta de salida si no existe
+  dir.create("Audioswav_prueba", showWarnings = FALSE)
   
   # Nombre del archivo sin extensión
-  base_name <- tools::file_path_sans_ext(basename(input_mp4))
+  base_name <- tools::file_path_sans_ext(basename(input_m4a))
   
-  # Ruta de salida dentro de Audioswav
-  output_wav <- file.path("Audioswav", paste0(base_name, ".wav"))
+  # Ruta de salida dentro de Audioswav_prueba
+  output_wav <- file.path("Audioswav_prueba", paste0(base_name, ".wav"))
   
+  # OJO: llamada por posición, sin "input =" ni "output ="
   av_audio_convert(
-    input       = input_mp4,
-    output      = output_wav,
+    input_m4a,        # archivo de entrada
+    output_wav,       # archivo de salida
     channels    = 1,
     sample_rate = sample_rate
   )
   
-  return(output_wav) #ruta de salida
+  return(output_wav)
 }
+
+# Carpeta raíz donde están los audios
+input_dir <- "AudiosOriginales"
+
+# Lista de TODOS los .m4a dentro de la carpeta y subcarpetas
+m4a_files <- list.files(
+  path       = input_dir,
+  pattern    = "\\.m4a$",
+  recursive  = TRUE,     # <-- incluye subcarpetas (como "Voz IA")
+  full.names = TRUE
+)
+
+# Convertir todos a wav dentro de "Audioswav"
+rutas_wav <- sapply(m4a_files, convertir_m4a_a_wave)
+
+rutas_wav  # aquí tienes las rutas de los wav generados
+
+#IMPORTANTE: LOS AUDIOS IA NO LOS COGE PORQUE YA ESTAN EN WAV: Podriamos simplemente copiarlos y pegarlos en la carpeta final donde estaran los audios. 
 ```
 
+Hago una prueba de que guarda bien los audios.
 ```{r}
-caracs_wav <- function(carpeta, patron = "\\.wav$") {
-  #1. Lista de archivos .wav de la carpeta
-  archivos <- list.files(carpeta, pattern = patron, full.names = TRUE)
-  
-  # 2. Recorrer cada archivo y sacar sus caracs
-  resultados <- lapply(archivos, function(f) {
-    wave <- readWave(f)
-    
-    # señal en mono (por si acaso)
-    x <- wave@left
-    fm <- wave@samp.rate
-    
-    #características básicas
-    duracion <- length(x) / fm              # en segundos
-    amp_media <- mean(abs(x))               # amplitud media
-    
-    data.frame(
-      archivo   = basename(f),
-      duracion  = duracion,
-      #se podrian añadir mas
-    )
-  })
-  
-  # 3. Unir todo en un data.frame
-  do.call(rbind, resultados)
-}
-
+mar<-readWave('Audioswav_prueba/MAngeles a3.wav')
+plot(mar)
 ```
+
+
 
