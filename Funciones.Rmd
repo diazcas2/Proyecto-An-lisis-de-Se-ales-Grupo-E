@@ -17,6 +17,34 @@ library(tuneR)
 
 # PERIOD PITCH
 
+El pitch es básicamente la frecuencia fundamental (vibración más baja, la base sobre la que se ocnstruyen el resto de vibraciones). 
+
+La frecuencia fundamental es la más característica porque es la base estable de la voz, independientemente de si hablas más fuerte o más suave. Las vibraciones más altas (los armónicos) cambian con el tono o la intensidad, pero la fundamental te da la identidad básica de la voz.
+
+Mide qué tan grave o qué tan aguda suena una voz. 
+- Voz grave → pitch bajo (frecuencias bajas)
+ -Voz aguda → pitch alto (frecuencias altas)
+
+Se mide en Hz (vibraciones por segundo). 
+
+Valores típicos según la **literatura consultada**:
+
+Rabiner, L. R., & Schafer, R. W. (1978). Digital Processing of Speech Signals. Prentice-Hall.
+  - hombres: ~85–180 Hz
+  - mujeres: ~165–255 Hz
+  
+Basu, Akashlina & Ahuja, Pooja & Dahiya,. (2020). Estimation of Pitch and Fundamental Frequency Variation Between Normal Males, Females and Intersex Population. Indian Journal of Forensic Medicine & Toxicology. 14. 1042.
+  - masculine voice ranges from 90-150 Hz 
+  - feminine voice, it ranges from 190-240 Hz.
+  
+Así pues, se han definido como **umbrales prácticos** basados en rangos reportados en la literatura, incorporando una zona de solapamiento para evitar clasificaciones forzadas:
+  - Masculina: 85- 170 Hz
+  - Femenina: 180 - 240 Hz
+
+
+El period pitch se calcula estimando el periodo fundamental de la señal mediante autocorrelación. Este método permite detectar la periodicidad principal de la voz, a partir de la cual se obtiene la frecuencia fundamental, que está directamente relacionada con la percepción de la altura tonal de la voz. Solo funciona bien en partes sonoras (vocales).
+
+
 ```{r}
 period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
 
@@ -24,7 +52,6 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
   if (inherits(signal, "Wave")) {
     if (is.null(fs)) fs <- signal@samp.rate
 
-    # Si es estéreo: promedio de canales (mono manual)
     if (isTRUE(signal@stereo)) {
       x <- (as.numeric(signal@left) + as.numeric(signal@right)) / 2
     } else {
@@ -36,51 +63,98 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
     signal <- as.numeric(signal)
   }
 
-  # Quitar NA por si acaso
   signal <- signal[is.finite(signal)]
-
-  # Centrar señal
   signal <- signal - mean(signal)
 
   n <- length(signal)
-  if (n < 10) stop("La señal tiene muy pocas muestras tras la conversión (n < 10).")
+  if (n < 10) stop("La señal tiene muy pocas muestras.")
 
-  # --- Lags según rango de F0 esperado ---
+  # --- Lags según F0 esperado ---
   lag_min <- floor(fs / fmax)
   lag_max <- ceiling(fs / fmin)
-
-  # No podemos pedir lags >= n
   lag_max <- min(lag_max, n - 1)
 
-  if (lag_min >= lag_max) {
-    stop(sprintf("Señal demasiado corta (n=%d) para ese rango: lag_min=%d, lag_max=%d. fs=%s",
-                 n, lag_min, lag_max, fs))
-  }
+  if (lag_min >= lag_max) stop("Señal demasiado corta para estimar pitch.")
 
-  # CLAVE: pedir a acf que calcule hasta lag_max
   ac <- as.numeric(acf(signal, lag.max = lag_max, plot = FALSE)$acf)
-  ac <- ac[-1]  # quitar lag 0
+  ac <- ac[-1]
 
   lag <- which.max(ac[lag_min:lag_max]) + lag_min - 1
   period <- lag / fs
   pitch <- 1 / period
 
-  list(period = period, pitch = pitch, lag = lag, fs = fs, n = n)
+  # --- Clasificación por pitch ---
+  gender <- if (pitch < 170) {
+    "Masculina"
+  } else if (pitch > 180) {
+    "Femenina"
+  } else {
+    "Indeterminado"
+  }
+
+  list(
+    period = period,
+    pitch = pitch,
+    gender = gender,
+    fs = fs,
+    n = n
+  )
 }
 
-
 ```
+
+La llamada a la función nos devolverá, tal y como se ve en la función, una lista compuesta del period, el pitch, el género con el que se clasifica, la frecuencia de muestreo y n.
 
 ```{r}
 o1 <- readWave("Audioswav/Oscar a1.wav")
 res <- period_pitch(o1)
 res$pitch
+res$gender
 
 ```
+
 ```{r}
 a1 <- readWave("Audioswav/Aza a1.wav")
 res <- period_pitch(a1)
 res$pitch
+res$gender
 
 ```
+```{r}
+i1 <- readWave("Audioswav/Iyan a1.wav")
+res <- period_pitch(i1)
+res$pitch
+res$gender
+```
+```{r}
+m1 <- readWave("Audioswav/MAngeles a1.wav")
+res <- period_pitch(m1)
+res$pitch
+res$gender
+```
 
+```{r}
+A1 <- readWave("Audioswav/alvaro a1.wav")
+res <- period_pitch(A1)
+res$pitch
+res$gender
+```
+```{r}
+f1 <- readWave("Audioswav/Flor a1.wav")
+res <- period_pitch(f1)
+res$pitch
+res$gender
+```
+```{r}
+ia1 <- readWave("Audioswav/Beatriz a1.wav")
+res <- period_pitch(ia1)
+res$pitch
+res$gender
+```
+
+```{r}
+en1 <- readWave("Audioswav/Enrique a1.wav")
+res <- period_pitch(en1)
+res$pitch
+res$gender
+```
