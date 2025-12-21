@@ -1,0 +1,93 @@
+---
+title: "Coeficientes_Mel"
+author: "Álvaro Nieva Valenzuela"
+date: "2025-12-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tuneR)
+```
+*CÁLCULO DE MFCC POR VENTANAS CORTAS)*
+
+Usando melfcc convertimos el audio en una matriz de números
+
+- Pre-énfasis: Aplica un filtro que resalta un poco las altas frecuencias. (compensa que muchas señales de voz pierden energía en altas frecuencias.)
+- Divide el audio en ventanas: con wintime y hoptime.
+- Para cada ventana:
+  - aplica una ventana (tipo Hamming) para suavizar bordes,
+  - calcula la FFT (pasa de tiempo a frecuencia),
+  - obtiene el espectro de potencia,
+  - lo pasa por un banco de filtros en escala Mel (nbands=40) → quedan 40 energías (una por banda),
+  - hace log de esas energías,
+  - aplica DCT para compactar → salen numcep=12 coeficientes: los MFCC.
+  
+
+
+```{r}
+w <- readWave("Audioswav/alvaro a1.wav")
+
+# 2) Calcular MFCC
+# Parámetros típicos de voz: 25ms ventana, 10ms salto, 12 coef, 40 bandas, preénfasis 0.97
+mfcc <- melfcc(
+  samples = w,
+  wintime = 0.025, #cada ventana dura 25 ms.
+  hoptime = 0.010, #cada 10 ms avanza a la siguiente.
+  numcep  = 12,
+  nbands  = 40,
+  preemph = 0.97, #Aplica un filtro que resalta un poco las altas frecuencias.
+  dither  = TRUE
+)
+
+dim(mfcc)     # frames x numcep (según frames_in_rows) -> cuántos frames y cuántos coeficientes.
+head(mfcc)
+```
+mfcc es una matriz de tamaño aproximado: (número de frames) × (12 coeficientes) en la que cada fila representa un instante (una ventana) y cada columna es un coeficiente MFCC.
+
+
+*CALCULAMOS LAS DERIVADAS Δ y ΔΔ*
+
+```{r}
+delta <- function(M) {
+  rbind(M[2, ] - M[1, ],
+        M[3:nrow(M), ] - M[1:(nrow(M)-2), ],
+        M[nrow(M), ] - M[nrow(M)-1, ])
+}
+
+d1 <- delta(mfcc) #“velocidad” o tendencia de cambio de los MFCC.
+d2 <- delta(d1) #“aceleración” (cambio de la velocidad).
+```
+
+La función delta(M) devuelve otra matriz del mismo tamaño que M, donde cada fila mide el cambio respecto a frames cercanos:
+
+- Para filas intermedias usa una diferencia “centrada” simple: M[t+1] - M[t-1] (aprox. velocidad).
+- En los extremos (primera y última fila) usa diferencias simples para no salirse del rango.
+
+*CONVERTIR TODO UN AUDIO EN UN ÚNICO VECTOR DE FEATURES (PARA ML CLÁSICO)*
+
+```{r}
+feat <- c(
+  colMeans(mfcc), #media de cada coeficiente MFCC a lo largo de todo el audio → 12 números.
+  apply(mfcc, 2, sd), #desviación típica de cada coeficiente → otros 12.
+  colMeans(d1),   apply(d1, 2, sd),
+  colMeans(d2),   apply(d2, 2, sd)
+)
+
+length(feat)
+```
+feat concatena estas estadísticas, en este orden:
+
+- Medias de MFCC (12 valores) → “timbre promedio” del clip
+- Desviaciones típicas de MFCC (12) → “variabilidad del timbre”
+- Medias de Δ (12) → tendencia media de cambio (dinámica)
+- Desviaciones típicas de Δ (12) → variabilidad de esa dinámica
+- Medias de ΔΔ (12) → curvatura media (aceleración)
+- Desviaciones típicas de ΔΔ (12) → variabilidad de la aceleración
+
+Estos valores no se interpretan como “Hz”, “formantes” o “pitch”. Son variables abstractas (coeficientes cepstrales y sus dinámicas).
+
+Con feat se forma un dataset con muchos audios y se entrena al modelo.
