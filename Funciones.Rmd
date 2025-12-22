@@ -158,3 +158,56 @@ res <- period_pitch(en1)
 res$pitch
 res$gender
 ```
+
+
+# CENTROIDE ESPECTRAL FUNCIÓN
+
+```{r}
+library(tuneR)
+
+spectral_centroid <- function(w) {
+  fs <- as.numeric(w@samp.rate)
+  x  <- as.numeric(w@left)
+
+  # quitar media para estabilidad
+  x <- x - mean(x)
+
+  N <- length(x)
+
+  X <- fft(x)
+  K <- floor(N / 2) + 1
+
+  P <- Mod(X[1:K])^2 #potencia espectral
+  denom <- sum(P) #denominador del centroide
+  if (!is.finite(denom) || denom <= 0) return(0)
+
+  # Evitar overflow: usar double desde el principio
+  freqs <- as.numeric(0:(K - 1)) * (fs / as.numeric(N))
+
+  sum(freqs * P) / denom
+}
+```
+
+```{r}
+audios <- list(
+  Oscar    = readWave("Audioswav/Oscar a1.wav"),
+  Aza      = readWave("Audioswav/Aza a1.wav"),
+  Iyan     = readWave("Audioswav/Iyan a1.wav"),
+  MAngeles = readWave("Audioswav/MAngeles a1.wav"),
+  alvaro   = readWave("Audioswav/alvaro a1.wav"),
+  Flor     = readWave("Audioswav/Flor a1.wav"),
+  Beatriz  = readWave("Audioswav/Beatriz a1.wav"),
+  Enrique  = readWave("Audioswav/Enrique a1.wav")
+)
+
+results <- data.frame(
+  person = names(audios),
+  centroid = sapply(audios, spectral_centroid)
+)
+
+results
+```
+
+En la voz generada por IA el centroide esn más estable y a veces más bajo, ya que el espectro esta demasiado limpio, hay menos micro-ruido, menos irregularidades y la energía está muy bien colocada en formantes.
+
+Sin embargo, la voz humana tiene más energía dispersa y una mayor fricación irregular, respiración y turbulencia real. 
