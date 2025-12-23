@@ -1,0 +1,179 @@
+---
+title: "ZCR y E"
+author: "Óscar Camacho"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(seewave)
+library(tuneR)
+```
+
+```{r}
+# Esto se puede eliminar en un futuro si se hace un bucle que pase todos los audios a las funciones correspondientes
+o1<-readWave('Audioswav_prueba/Oscar a1.wav')
+a1<-readWave('Audioswav_prueba/aza a1.wav')
+plot(o1)
+```
+
+## Función de zcr
+```{r}
+zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
+  fs <- audio@samp.rate
+  wlen <- floor(win_time*fs)
+  
+  zcr_calc <- zcr(audio, wl=wlen, ovlp=overlap, plot=plot_result)
+  df_zcr <- data.frame(time = zcr_calc[, 1], zcr_value = zcr_calc[, 2])
+  return(df_zcr)
+}
+```
+
+## Función de la energía
+```{r}
+ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
+  signal <- audio@left
+  fs <- audio@samp.rate
+  N <- length(signal)
+  
+  overlap_pct <- overlap/100
+  wlen <- floor(win_time*fs)
+  step_size <- floor(wlen * (1 - overlap_pct))
+  num_frames <- floor((N - wlen) / step_size) + 1
+  ste_vec <- numeric(num_frames)
+  time_axis <- numeric(num_frames)
+  
+  # Cálculo de la energía
+  for (i in 1:num_frames) {
+    start_idx <- (i - 1) * step_size + 1
+    end_idx <- start_idx + wlen - 1
+    
+    if(end_idx > N) break
+    
+    window_data <- signal[start_idx:end_idx]
+    
+    ste_vec[i] <- sum(window_data^2)
+    
+    time_axis[i] <- (start_idx + wlen/2) / fs
+  }
+  
+  ste_norm <- (ste_vec - min(ste_vec)) / (max(ste_vec) - min(ste_vec))
+  
+  if (plot_result) {
+    plot(time_axis, ste_norm, type = "l", col = "darkgreen",
+         main = paste("STE Normalizada - Ventana:", wlen/fs*1000, "ms"),
+         xlab = "Tiempo (s)", ylab = "Energía normalizada")
+    grid()
+  }
+  
+  df_ste <- data.frame(time = time_axis, ste = ste_norm)
+  return(df_ste)
+}
+```
+
+## Función para detectar ruido
+```{r}
+noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.05, umbral_ste = 0.05, plot_result = T){
+  datos_ste <- ste_audio(audio, win_time, overlap, plot_result = F)
+  datos_zcr <- zcr_audio(audio, win_time, overlap, plot_result = F)
+  
+  # Sincronizar longitudes
+  n_filas <- min(nrow(datos_ste), nrow(datos_zcr))
+  datos_ste <- datos_ste[1:n_filas, ]
+  datos_zcr <- datos_zcr[1:n_filas, ]
+  
+  df_final <- datos_ste
+  df_final$zcr <- datos_zcr$zcr_value
+  df_final$es_ruido <- FALSE
+  
+  # Criterio 1: baja energía = silencio o ruido de fondo
+  df_final$es_ruido[df_final$ste < umbral_ste] <- TRUE
+  
+  # Criterio 2 (opcional): alta ZCR con energía media-baja suele ser ruido de viento o siseo
+  #df_final$es_ruido[df_final$zcr > umbral_zcr & df_final$ste < 0.2] <- TRUE
+  
+  df_final$etiqueta <- ifelse(df_final$es_ruido, "Ruido/Silencio", "Voz/Señal")
+  
+  if (plot_result) {
+    plot(df_final$time, df_final$ste, type = "l", col = "gray", lwd = 2,
+         main = "Detección Ruido", 
+         xlab = "Tiempo (s)", ylab = "Energía Normalizada", ylim = c(0,1))
+    
+    # Ruido
+    points(df_final$time[df_final$es_ruido], 
+           df_final$ste[df_final$es_ruido], 
+           col = rgb(1, 0, 0, 0.5), pch = 16, cex = 0.5)
+    
+    # Señal
+    points(df_final$time[!df_final$es_ruido], 
+           df_final$ste[!df_final$es_ruido], 
+           col = rgb(0, 0.6, 0, 0.5), pch = 16, cex = 0.5)
+           
+    abline(h = umbral_ste, col = "blue", lty = 2, lwd = 2)
+    legend("topright", legend = c("Señal", "Ruido", "Umbral"), 
+           col = c("darkgreen", "red", "blue"), pch = 16, lty = c(NA, NA, 2))
+  }
+  
+  return(df_final)
+}
+```
+
+## Pruebas de funciones
+```{r}
+noise_audio(o1)
+noise_audio(a1)
+```
+
+## Pruebas para eliminar ruido y silencios del audio
+```{r}
+clean_audio <- function(audio, df_analisis) {
+  fs <- audio@samp.rate
+  
+  # Tiempos donde NO hay ruido
+  tiempos_senal <- df_analisis$time[!df_analisis$es_ruido]
+
+  # Concatenamos solo las muestras que corresponden a tramos de la señal
+  dt <- df_analisis$time[2] - df_analisis$time[1]
+  muestras_por_trama <- floor(dt * fs)
+  
+  indices_validos <- which(!df_analisis$es_ruido)
+  senal_reconstruida <- numeric()
+  
+  vec_logico <- rep(FALSE, length(audio@left))
+  
+  for(idx in indices_validos){
+    # Convertimos el tiempo del tramo a índice de muestra aproximado
+    centro <- df_analisis$time[idx]
+    inicio <- round((centro - dt/2) * fs)
+    fin <- round((centro + dt/2) * fs)
+    
+    # Asegurar límites
+    inicio <- max(1, inicio)
+    fin <- min(length(audio@left), fin)
+    
+    vec_logico[inicio:fin] <- TRUE
+  }
+  
+  samples_limpios <- audio@left[vec_logico]
+  
+  # Creamos un nuevo objeto wave
+  wave_limpio <- Wave(left = samples_limpios, samp.rate = fs, bit = audio@bit)
+  return(wave_limpio)
+}
+```
+
+```{r}
+audio_limpio <- limpiar_audio(o1, resultado_analisis)
+
+# Comparación del audio original y el procesado
+par(mfrow=c(2,1))
+oscillo(o1, title = "Original")
+oscillo(audio_limpio, title = "Procesado")
+
+writeWave(audio_limpio, "Audioswav/Oscar_a1_limpio.wav")
+```
+
