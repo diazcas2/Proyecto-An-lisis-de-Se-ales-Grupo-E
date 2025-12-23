@@ -207,3 +207,68 @@ voces_df$sexo==voces_df$PREDICCIÓN_SEXO
 
 
 
+
+# CENTROIDE ESPECTRAL FUNCIÓN
+
+```{r}
+library(tuneR)
+
+spectral_centroid <- function(w) {
+  fs <- as.numeric(w@samp.rate)
+  x  <- as.numeric(w@left)
+
+  # quitar media para estabilidad
+  x <- x - mean(x)
+
+  N <- length(x)
+
+  X <- fft(x)
+  K <- floor(N / 2) + 1
+
+  P <- Mod(X[1:K])^2 #potencia espectral
+  denom <- sum(P) #denominador del centroide
+  if (!is.finite(denom) || denom <= 0) return(0)
+
+  # Evitar overflow: usar double desde el principio
+  freqs <- as.numeric(0:(K - 1)) * (fs / as.numeric(N))
+
+  sum(freqs * P) / denom
+}
+```
+
+```{r}
+# -------- 1) listar todos los wav de la carpeta --------
+files <- list.files(
+  "Audioswav_prueba",
+  pattern = "\\.wav$",
+  full.names = TRUE
+)
+
+# -------- 2) calcular centroides --------
+centroids <- sapply(files, function(f) spectral_centroid(readWave(f)))
+
+# -------- 3) extraer persona y toma del nombre --------
+names_noext <- tools::file_path_sans_ext(basename(files))
+
+# persona = nombre sin " a1 / a2 / a3"
+person <- sub("\\s+a\\d+$", "", names_noext, ignore.case = TRUE)
+
+# toma = a1 / a2 / a3
+take <- sub("^.*\\s+(a\\d+)$", "\\1", names_noext, ignore.case = TRUE)
+take[!grepl("^a\\d+$", take, ignore.case = TRUE)] <- NA
+
+# -------- 4) data frame final --------
+results <- data.frame(
+  file = basename(files),
+  person = person,
+  take = take,
+  centroid_hz = centroids,
+  stringsAsFactors = FALSE
+)
+
+results
+```
+
+En la voz generada por IA el centroide esn más estable y a veces más bajo, ya que el espectro esta demasiado limpio, hay menos micro-ruido, menos irregularidades y la energía está muy bien colocada en formantes.
+
+Sin embargo, la voz humana tiene más energía dispersa y una mayor fricación irregular, respiración y turbulencia real. 
