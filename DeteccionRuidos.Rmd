@@ -77,7 +77,7 @@ ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
 
 ## Función para detectar ruido
 ```{r}
-noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.05, umbral_ste = 0.05, plot_result = T){
+noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.05, umbral_ste = 0.02, plot_result = T){
   datos_ste <- ste_audio(audio, win_time, overlap, plot_result = F)
   datos_zcr <- zcr_audio(audio, win_time, overlap, plot_result = F)
   
@@ -167,7 +167,8 @@ clean_audio <- function(audio, df_analisis) {
 ```
 
 ```{r}
-audio_limpio <- limpiar_audio(o1, resultado_analisis)
+resultado_analisis <- noise_audio(o1, plot_result = TRUE)
+audio_limpio <- clean_audio(o1, resultado_analisis)
 
 # Comparación del audio original y el procesado
 par(mfrow=c(2,1))
