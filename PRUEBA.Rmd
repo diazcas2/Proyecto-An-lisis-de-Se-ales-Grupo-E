@@ -201,10 +201,76 @@ df_carpeta <- function(df, carpeta) {
 
 DF_CARPETA:
 ```{r}
-voces_df <- df_carpeta(voces_df, "Audioswav")
+voces_df <- df_carpeta(voces_df, "Audioswav_prueba")
 voces_df$sexo==voces_df$PREDICCIÓN_SEXO
 ```
 
+
+REGRESIÓN LOGÍSTICA:
+```{r}
+voces_df$gender <- ifelse(voces_df$sexo == "F", 1, 0)
+table(voces_df$gender)
+
+voces_modif<-voces_df[-c(1,2,9)]
+voces_modif$origen <- factor(voces_modif$origen)
+voces_modif$acento <- factor(voces_modif$acento)
+
+mod <- glm(gender ~ ., data = voces_modif, family = binomial(link="logit"))
+summary(mod)
+
+(mod$null.deviance - mod$deviance)/mod$null.deviance
+par(mfrow = c(2,2))
+plot(mod)
+```
+
+K-FOLD PORQUE NO HAY SUFICIENTES DATOS:
+```{r}
+library(boot) 
+cost <- function(r, pi = 0) mean(abs(r - (pi > 0.5)))
+
+# Ejecutar validación cruzada k-fold (por defecto leave-one-out)
+set.seed(123)
+cv_result <- cv.glm(voces_modif, mod, K = 5, cost = cost)  # k = 5 folds
+
+# Revisar resultado
+cv_result$delta
+
+```
+
+BUSCAR SI HAY MODELOS MEJORES:
+```{r}
+mod_simple <- glm(gender ~ period_pitch, data = voces_modif, family = binomial)
+anova(mod_simple, mod, test = "Chisq")
+```
+
+Podemos ver que el simple es mejor que si cogemos todos los datos (era lógico). Veamos que ocurre usando k-fold:
+
+```{r}
+library(boot)
+
+# 1. Definir la función de coste (0-1 loss para clasificación)
+cost <- function(r, pi = 0) mean(abs(r - (pi > 0.5)))
+
+# 2. Ejecutar validación cruzada para el modelo simple
+set.seed(123)
+cv_simple <- cv.glm(voces_modif, mod_simple, K = 5, cost = cost)
+
+# 3. Ver los resultados
+print(cv_simple$delta)
+```
+Podemos ver que el de todo era un 13% de error y con ese modelo un 4% de error.
+
+ENTRENAMIENTO:
+```{r}
+train <- sample(nrow(voces_modif),0.7 * nrow (voces_modif))
+mod_pred <- glm(gender ~ period_pitch, family = binomial ( link = logit ) , data =voces_modif[ train ,])
+summary ( mod_pred)
+
+(mod_pred$null.deviance - mod_pred$deviance)/mod_pred$null.deviance
+pred <- predict(mod_pred, voces_modif[-train,], type = "response")
+plot(pred, voces_modif$gender[-train], pch = 20)
+cor(pred, voces_modif$gender[-train])
+```
 
 
 
