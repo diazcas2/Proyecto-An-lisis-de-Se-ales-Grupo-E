@@ -272,6 +272,42 @@ plot(pred, voces_modif$gender[-train], pch = 20)
 cor(pred, voces_modif$gender[-train])
 ```
 
+# ACENTO:
+
+```{r}
+# Instalar si no lo tienes: install.packages("nnet")
+library(nnet)
+
+# Asegúrate de que 'acento' es un factor
+voces_modif$acento <- as.factor(voces_modif$acento)
+
+# Crear el modelo para predecir ACENTO
+# Usamos ZCR y Energía como sugeriste
+mod_acento <- multinom(acento ~ zcr + energia_rms + duracion, data = voces_modif)
+
+summary(mod_acento)
+```
+
+```{r}
+library(ggplot2)
+
+# Gráfico para ver cómo varía el ZCR según el acento
+ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
+  geom_boxplot() +
+  labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") +
+  theme_minimal()
+```
+```{r}
+# Necesitamos la log-verosimilitud del modelo completo y del modelo nulo
+logL_modelo <- logLik(mod_acento)
+# Creamos un modelo nulo (solo el intercepto)
+mod_nulo <- nnet::multinom(acento ~ 1, data = voces_modif)
+logL_nulo <- logLik(mod_nulo)
+
+# Fórmula de McFadden: 1 - (logL_modelo / logL_nulo)
+r2_mcfadden <- as.numeric(1 - (logL_modelo / logL_nulo))
+print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
+```
 
 
 # CENTROIDE ESPECTRAL FUNCIÓN
