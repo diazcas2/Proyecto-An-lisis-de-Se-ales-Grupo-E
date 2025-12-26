@@ -374,3 +374,87 @@ results
 En la voz generada por IA el centroide esn más estable y a veces más bajo, ya que el espectro esta demasiado limpio, hay menos micro-ruido, menos irregularidades y la energía está muy bien colocada en formantes.
 
 Sin embargo, la voz humana tiene más energía dispersa y una mayor fricación irregular, respiración y turbulencia real. 
+
+# MODELO PARA DIFERENCIAR ENTRE IA Y NO IA
+
+```{r}
+voces_df$centroid <- sapply(voces_df$señal, function(nombre) {
+  w <- readWave(file.path("Audioswav_prueba", nombre))
+  spectral_centroid(w)
+})
+```
+
+
+```{r}
+aggregate(centroid ~ origen + sexo, data = voces_df, summary)
+
+ggplot(voces_df, aes(x = origen, y = centroid, fill = origen)) +
+  geom_boxplot() +
+  facet_wrap(~ sexo) +
+  labs(title = "Centroide espectral: Humano vs IA (por sexo)") +
+  theme_minimal()
+```
+
+Dentro de los hombres no hay solapamiento, por lo que las clases se podrían separar de forma perfecta con un humbral. 
+
+Con respecto a las mujeres si hay solapamiento, por lo que habrá alguna muestra mal clasificada. 
+
+```{r}
+best_threshold <- function(df, metric = c("accuracy", "f1")) {
+  metric <- match.arg(metric)
+
+  # nos quedamos con casos válidos
+  d <- df[is.finite(df$centroid) & !is.na(df$origen), ]
+  if (nrow(d) < 4) stop("Muy pocos datos para calibrar umbral.")
+
+  # IA=1, P=0
+  y <- ifelse(d$origen == "IA", 1, 0)
+  x <- d$centroid
+
+  # candidatos: valores únicos del centroide (o sus puntos medios)
+  ux <- sort(unique(x))
+  thr_candidates <- (ux[-1] + ux[-length(ux)]) / 2
+  if (length(thr_candidates) == 0) thr_candidates <- ux
+
+  score_thr <- function(thr) {
+    pred <- ifelse(x < thr, 1, 0)
+
+    TP <- sum(pred == 1 & y == 1)
+    TN <- sum(pred == 0 & y == 0)
+    FP <- sum(pred == 1 & y == 0)
+    FN <- sum(pred == 0 & y == 1)
+
+    acc <- (TP + TN) / (TP + TN + FP + FN)
+
+    prec <- if ((TP + FP) == 0) 0 else TP / (TP + FP)
+    rec  <- if ((TP + FN) == 0) 0 else TP / (TP + FN)
+    f1   <- if ((prec + rec) == 0) 0 else 2 * prec * rec / (prec + rec)
+
+    if (metric == "accuracy") acc else f1
+  }
+
+  scores <- sapply(thr_candidates, score_thr)
+  thr_best <- thr_candidates[which.max(scores)]
+  list(threshold = thr_best, score = max(scores))
+}
+```
+
+```{r}
+thr_F <- best_threshold(subset(voces_df, sexo == "F"), metric = "f1")
+thr_M <- best_threshold(subset(voces_df, sexo == "M"), metric = "f1")
+
+thr_F
+thr_M
+```
+
+```{r}
+voces_df$PRED_IA <- NA_character_
+voces_df$PRED_IA[voces_df$sexo == "F"] <- ifelse(voces_df$centroid[voces_df$sexo == "F"] < thr_F$threshold, "IA", "P")
+voces_df$PRED_IA[voces_df$sexo == "M"] <- ifelse(voces_df$centroid[voces_df$sexo == "M"] < thr_M$threshold, "IA", "P")
+```
+
+```{r}
+conf <- table(Real = voces_df$origen, Pred = voces_df$PRED_IA)
+conf
+```
+
