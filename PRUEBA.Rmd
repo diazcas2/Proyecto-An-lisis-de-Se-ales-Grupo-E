@@ -201,8 +201,16 @@ df_carpeta <- function(df, carpeta) {
 
 DF_CARPETA:
 ```{r}
-voces_df <- df_carpeta(voces_df, "Audioswav_prueba")
+voces_df <- df_carpeta(voces_df, "Audios_finales_conv")
 voces_df$sexo==voces_df$PREDICCIÓN_SEXO
+```
+
+```{r}
+table(voces_df$PREDICCIÓN_SEXO)
+```
+
+```{r}
+table(voces_df$sexo)
 ```
 
 
@@ -215,7 +223,7 @@ voces_modif<-voces_df[-c(1,2,9)]
 voces_modif$origen <- factor(voces_modif$origen)
 voces_modif$acento <- factor(voces_modif$acento)
 
-mod <- glm(gender ~ ., data = voces_modif, family = binomial(link="logit"))
+#mod <- glm(gender ~ ., data = voces_modif, family = binomial(link="logit"))
 summary(mod)
 
 (mod$null.deviance - mod$deviance)/mod$null.deviance
@@ -240,7 +248,7 @@ cv_result$delta
 BUSCAR SI HAY MODELOS MEJORES:
 ```{r}
 mod_simple <- glm(gender ~ period_pitch, data = voces_modif, family = binomial)
-anova(mod_simple, mod, test = "Chisq")
+#anova(mod_simple, mod, test = "Chisq")
 ```
 
 Podemos ver que el simple es mejor que si cogemos todos los datos (era lógico). Veamos que ocurre usando k-fold:
