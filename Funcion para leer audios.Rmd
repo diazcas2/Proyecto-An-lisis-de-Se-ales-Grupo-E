@@ -27,13 +27,13 @@ Hago la función para convertir los audios a wav.
 
 convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
   # Crear carpeta de salida si no existe
-  dir.create("Audioswav_prueba", showWarnings = FALSE)
+  dir.create("Audios_finales_conv", showWarnings = FALSE)
   
   # Nombre del archivo sin extensión
   base_name <- tools::file_path_sans_ext(basename(input_m4a))
   
   # Ruta de salida dentro de Audioswav_prueba
-  output_wav <- file.path("Audioswav_prueba", paste0(base_name, ".wav"))
+  output_wav <- file.path("Audios_finales_conv", paste0(base_name, ".wav"))
   
   # OJO: llamada por posición, sin "input =" ni "output ="
   av_audio_convert(
@@ -47,7 +47,7 @@ convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
 }
 
 # Carpeta raíz donde están los audios
-input_dir <- "AudiosOriginales"
+input_dir <- "Audios_finales_orig"
 
 # Lista de TODOS los .m4a dentro de la carpeta y subcarpetas
 m4a_files <- list.files(
