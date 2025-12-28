@@ -67,7 +67,7 @@ rutas_wav  # aquí tienes las rutas de los wav generados
 
 Hago una prueba de que guarda bien los audios.
 ```{r}
-mar<-readWave('Audioswav_prueba/MAngeles a3.wav')
+mar<-readWave('Audios_finales_conv/MAngeles af3.wav')
 plot(mar)
 ```
 
