@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+
+entrenamiento_MFCC/predicciones_test_etiquetado.csv
+entrenamiento_MFCC/testeo_audios_nuestros/predicciones_test_etiquetado_nuestro.csv
