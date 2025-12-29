@@ -291,6 +291,7 @@ voces_modif$acento <- as.factor(voces_modif$acento)
 
 # Crear el modelo para predecir ACENTO
 # Usamos ZCR y Energía como sugeriste
+
 mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch + gender, data = voces_modif, maxit=500)
 
 summary(mod_acento)
