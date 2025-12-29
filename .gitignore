@@ -2,9 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-<<<<<<< HEAD
-=======
 
-entrenamiento_MFCC/predicciones_test_etiquetado.csv
 entrenamiento_MFCC/testeo_audios_nuestros/predicciones_test_etiquetado_nuestro.csv
->>>>>>> 9bf397eb6fdc6f205000a51aa227a8a6743d4e58
+
