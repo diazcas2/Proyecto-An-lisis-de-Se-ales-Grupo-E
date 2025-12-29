@@ -1,0 +1,482 @@
+---
+title: "Modelo_MFCC"
+author: "Álvaro Nieva Valenzuela"
+date: "2025-12-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tuneR)
+library(seewave)
+library(caret)
+library(pROC)
+library(dplyr)
+```
+
+**DEFINICIÓN DE FUNCIONES**
+
+```{r}
+
+
+# calcula un canal mono como el promedio de los canales izquierdo y derecho
+to_mono <- function(w) {
+  
+  if (!is.null(w@stereo) && isTRUE(w@stereo)) {
+    mono <- round((w@left + w@right) / 2)
+    w <- Wave(left = mono, samp.rate = w@samp.rate, bit = w@bit)
+  }
+  w
+}
+
+#Pone todos los audios en la misma frecuencia de muestreo (por defecto, 16 kHz).
+#MFCC depende de la escala de frecuencias. Si un audio está a 48 kHz y otro a 16 kHz, las bandas y la interpretación espectral no son comparables de manera directa.
+resample_if_needed <- function(w, target_sr = 16000) {
+  # Resampleo a frecuencia fija (recomendado para comparabilidad)
+  if (!is.null(target_sr) && w@samp.rate != target_sr) {
+    if (!requireNamespace("seewave", quietly = TRUE)) {
+      stop("Para resamplear instala 'seewave' o pon target_sr=NULL.")
+    }
+    # seewave::resamp espera el vector de señal y los rates
+    x <- seewave::resamp(w@left, f = w@samp.rate, g = target_sr, output = "sample")
+    # reconstruye Wave (manteniendo bit depth)
+    w <- Wave(left = as.integer(round(x)), samp.rate = target_sr, bit = w@bit)
+    #w <- Wave(left = as.integer(x), samp.rate = target_sr, bit = w@bit)
+  }
+  w
+}
+
+#calcula derivadas temporales (Δ) aproximadas sobre una matriz por frames (MFCC u otra).
+#Por qué es importante: Δ y ΔΔ capturan dinámica temporal (cómo cambian los coeficientes), que suele ayudar en clasificación de voz (incluyendo spoof/deepfake).
+delta_simple <- function(M) {
+  # Delta centrada simple (con división por 2 para aproximar derivada discreta)
+  # Maneja audios muy cortos (pocos frames)
+  n <- nrow(M)
+  if (is.null(n) || n < 2) return(matrix(NA_real_, nrow = n, ncol = ncol(M)))
+  if (n == 2) {
+    d <- rbind(M[2,] - M[1,], M[2,] - M[1,])
+    return(d)
+  }
+  d <- rbind(
+    (M[2, ] - M[1, ]),                          # borde inicial
+    (M[3:n, ] - M[1:(n-2), ]) / 2,              # centrada
+    (M[n, ] - M[n-1, ])                         # borde final
+  )
+  d
+}
+
+# transformar un archivo de audio en un único vector de features para meter en un dataframe.
+extract_feat_from_wav <- function(
+  file,
+  label = NA_character_,
+  target_sr = 16000,
+  wintime = 0.025,
+  hoptime = 0.010,
+  numcep  = 12,
+  nbands  = 40,
+  preemph = 0.97,
+  dither  = FALSE,
+  frames_min = 5
+) {
+  # Lee WAV, calcula MFCC + Δ + ΔΔ y devuelve un vector nombrado (1 fila)
+  w <- tryCatch(readWave(file), error = function(e) NULL)
+  if (is.null(w)) return(NULL)
+
+  w <- to_mono(w)
+  w <- resample_if_needed(w, target_sr = target_sr)
+
+  # melfcc() puede variar según instalación; asumimos como en tu código.
+  mfcc <- tryCatch(
+    melfcc(
+      samples = w,
+      wintime = wintime,
+      hoptime = hoptime,
+      numcep  = numcep,
+      nbands  = nbands,
+      preemph = preemph,
+      dither  = dither
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(mfcc)) return(NULL)
+
+  # Evitar clips demasiado cortos
+  if (nrow(mfcc) < frames_min) return(NULL)
+
+  # d1 <- delta_simple(mfcc)
+  # d2 <- delta_simple(d1)
+  # 
+  # # Estadísticos (1 vector por audio)
+  # feat <- c(
+  #   colMeans(mfcc), apply(mfcc, 2, sd),
+  #   colMeans(d1),   apply(d1,   2, sd),
+  #   colMeans(d2),   apply(d2,   2, sd)
+  # )
+  # 
+  # Nombres de columnas estables
+  
+  
+  # --- AQUÍ VA EL BLOQUE NUEVO ---
+  # Limpieza de no-finitos (Inf/-Inf/NaN) que contaminan colMeans/sd
+  mfcc[!is.finite(mfcc)] <- NA_real_
+
+  # Si queda “demasiado roto”, descarta el audio
+  if (all(is.na(mfcc))) return(NULL)
+
+  d1 <- delta_simple(mfcc)
+  d1[!is.finite(d1)] <- NA_real_
+
+  d2 <- delta_simple(d1)
+  d2[!is.finite(d2)] <- NA_real_
+
+  sd_na <- function(x) sd(x, na.rm = TRUE)
+
+  # Estadísticos (1 vector por audio)
+  feat <- c(
+    colMeans(mfcc, na.rm = TRUE), apply(mfcc, 2, sd_na),
+    colMeans(d1,   na.rm = TRUE), apply(d1,   2, sd_na),
+    colMeans(d2,   na.rm = TRUE), apply(d2,   2, sd_na)
+  )
+  
+  nm <- c(
+    paste0("mfcc_mean_", seq_len(numcep)),
+    paste0("mfcc_sd_",   seq_len(numcep)),
+    paste0("d1_mean_",   seq_len(numcep)),
+    paste0("d1_sd_",     seq_len(numcep)),
+    paste0("d2_mean_",   seq_len(numcep)),
+    paste0("d2_sd_",     seq_len(numcep))
+  )
+  names(feat) <- nm
+
+  # Añadimos metadatos
+  c(file = normalizePath(file, winslash = "/", mustWork = FALSE),
+    label = label,
+    sr = as.character(w@samp.rate),
+    feat)
+  
+}
+
+# Recorre carpetas de audios, extrae feat por archivo y devuelve un data.frame final.
+build_feat_dataframe <- function(
+  real_dir,
+  ia_dir,
+  pattern = "\\.(wav|WAV)$",
+  recursive = TRUE,
+  target_sr = 16000,
+  ...
+) {
+  real_files <- list.files(real_dir, pattern = pattern, full.names = TRUE, recursive = recursive)
+  ia_files   <- list.files(ia_dir,   pattern = pattern, full.names = TRUE, recursive = recursive)
+
+  files <- c(real_files, ia_files)
+  labels <- c(rep("real", length(real_files)), rep("ia", length(ia_files)))
+
+  rows <- vector("list", length(files))
+  for (i in seq_along(files)) {
+    rows[[i]] <- extract_feat_from_wav(
+      file = files[i],
+      label = labels[i],
+      target_sr = target_sr,
+      ...
+    )
+  }
+
+  # Quitar fallos / audios demasiado cortos
+  rows <- rows[!vapply(rows, is.null, logical(1))]
+  if (length(rows) == 0) {
+    return(data.frame())
+  }
+
+  # Pasar a data.frame (todo como character/numeric según corresponda)
+  df <- as.data.frame(do.call(rbind, lapply(rows, function(x) {
+    # Convertimos a lista para que data.frame no convierta nombres raros
+    as.list(x)
+  })), stringsAsFactors = FALSE)
+
+  # Convertir columnas numéricas (excepto file/label)
+  num_cols <- setdiff(names(df), c("file", "label"))
+  df[num_cols] <- lapply(df[num_cols], function(v) suppressWarnings(as.numeric(v)))
+
+  # Reordenar
+  df <- df[, c("file", "label", "sr", setdiff(names(df), c("file", "label", "sr")))]
+  df
+}
+```
+
+Se construye el dataframe de las carpetas *for-norm/training/real* y *for-norm/training/fake*
+
+```{r}
+df <- build_feat_dataframe(
+  real_dir = "for-norm/training/real",
+  ia_dir   = "for-norm/training/fake",
+  target_sr = 16000,
+  dither = FALSE
+)
+# str(df)
+# table(df$label)
+```
+
+
+**ENTRENAMIENTO DEL MODELO**
+
+
+
+Se arregla el dataframe creado anteriormente
+
+```{r}
+set.seed(123)
+
+# 1) Target como factor
+df <- df %>%
+  mutate(label = factor(label, levels = c("real","ia")))
+
+# 2) Eliminar columnas no predictoras
+drop_cols <- intersect(names(df), c("file","sr"))
+df_ml <- df %>% select(-all_of(drop_cols))
+
+# 3) Quitar filas con NA/Inf (mejor que imputar de inicio)
+is_bad <- function(x) is.na(x) | is.infinite(x)
+bad_rows <- apply(df_ml %>% select(-label), 1, function(r) any(is_bad(r)))
+train_df <- df_ml[!bad_rows, ]
+```
+
+Se guarda en *entrenamiento_MFCC/train_df.rds*
+
+```{r}
+saveRDS(train_df, "testeo_audios_nuestros/train_df_nuestro.rds")
+```
+
+
+```{r}
+train_df<-readRDS("entrenamiento_MFCC/train_df.rds")
+```
+
+
+Se ha usado *SVM con kernel RBF (baseline robusto)* por los siguientes motivos:
+
+- Tus features (feat) son estadísticas (media, sd de MFCC, Δ y ΔΔ). Eso produce un problema tabular de dimensión moderada (72 predictores) donde:
+
+  - La frontera entre clases puede ser no lineal. 
+  - No hay una estructura secuencial (esta colapsads en un vector por audio).
+  
+- La SVM con kernel radial (RBF) está diseñada para:
+
+  - Construir fronteras no lineales con buen poder de generalización
+  - Funcionar muy bien en dimensiones medianas.
+  - Ser un baseline clásico muy competitivo en problemas de audio con features cepstrales.
+
+```{r}
+#Definición del esquema de validación
+ctrl <- trainControl(
+  method = "repeatedcv", #se usa validación cruzada repetida.
+  number = 5, #hace 5 folds (5 particiones).
+  repeats = 2, #repite el proceso completo de 5 folds 2 veces.
+  classProbs = TRUE, #calcula probabilidades de clase (necesario para métricas como ROC)
+  summaryFunction = twoClassSummary, #calcula métricas típicas de clasificación binaria (principalmente ROC/AUC)
+  savePredictions = "final", #guarda las predicciones del mejor modelo
+)
+
+#Entrenamiento del SVM con tuning y preprocesado
+svm_fit <- train(
+  label ~ ., #fórmula de modelado: label es la variable objetivo y . ->“usar las demás columnas como predictores”.
+  data = train_df, #dataset de entrenamiento.
+  method = "svmRadial", #entrena un SVM con kernel radial (RBF)
+  metric = "ROC", #elige la mejor configuración de hiperparámetros maximizando AUC-ROC.
+  trControl = ctrl, #aplica el control de CV definido arriba.
+  preProcess = c("center","scale"), #estandariza los predictores.
+  tuneLength = 10 #prueba automáticamente una “rejilla”.
+)
+
+svm_fit
+
+saveRDS(svm_fit, "entrenamiento_MFCC, modelo_svm_feat.rds")
+```
+```{r}
+saveRDS(svm_fit, "testeo_audios_nuestros/svm_fit_nuestro.rds")
+```
+
+
+**EVALUACIÓN DEL MODELO CON LA CARPETA TEST**
+
+```{r}
+svm_fit <- readRDS("modelo_svm_feat.rds")
+```
+
+Se crea el dataframe df_test 
+
+```{r}
+df_test <- build_feat_dataframe(
+  real_dir = "for-norm/testing/real",
+  ia_dir   = "for-norm/testing/fake",
+  target_sr = 16000,
+  dither = FALSE
+)
+```
+
+
+```{r}
+saveRDS(df_test, "testeo_audios_nuestros/df_test_nuestro.rds")
+```
+
+Se arregla el dataframe
+
+```{r}
+df_test <- df_test %>%
+  mutate(label = factor(label, levels = c("real","ia")))
+
+drop_cols <- intersect(names(df_test), c("file","sr"))
+df_test_ml <- df_test %>% select(-all_of(drop_cols))
+
+# Quitar filas con NA/Inf
+is_bad <- function(x) is.na(x) | is.infinite(x)
+bad_rows <- apply(df_test_ml %>% select(-label), 1, function(r) any(is_bad(r)))
+df_test_ml <- df_test_ml[!bad_rows, ]
+df_test_ok <- df_test[!bad_rows, ] #test “limpio” pero conservando metadatos (file, sr) para comparar resultados
+```
+
+```{r}
+saveRDS(df_test_ml, "testeo_audios_nuestros/df_test_ml_nuestro.rds")
+saveRDS(df_test_ok, "testeo_audios_nuestros/df_test_ok_nuestro.rds")
+```
+
+Se usa el modelo entrenado para predecir y obtenemos metricas (ROC, Matriz de confusión)
+
+```{r}
+# 3) Predicción
+p <- predict(svm_fit, newdata = df_test_ml, type = "prob")[, "ia"]
+pred <- predict(svm_fit, newdata = df_test_ml, type = "raw")
+
+# 4) Métricas
+confusionMatrix(pred, df_test_ml$label)
+
+roc_obj <- roc(response = df_test_ml$label, predictor = p, levels = c("real","ia"))
+auc(roc_obj)
+plot(roc_obj)
+
+# 5) Guardar resultados por archivo
+results <- data.frame(
+  file = df_test_ok$file,
+  label = df_test_ok$label,
+  prob_ia = p,
+  pred = pred,
+  stringsAsFactors = FALSE
+)
+
+write.csv(results, "testeo_audios_nuestros/predicciones_test_etiquetado_nuestro.csv", row.names = FALSE)
+results
+```
+
+```{r}
+results <- read.csv("testeo_audios_nuestros/predicciones_test_etiquetado_nuestro.csv", stringsAsFactors = FALSE)
+```
+
+```{r}
+# 2) Limpiar strings
+results$label <- trimws(tolower(results$label))
+results$pred  <- trimws(tolower(results$pred))
+
+# 3) (Opcional) normalizar nombres si el CSV usa "fake" en vez de "ia"
+results$label <- ifelse(results$label %in% c("fake", "synthetic"), "ia", results$label)
+results$pred  <- ifelse(results$pred  %in% c("fake", "synthetic"), "ia", results$pred)
+
+# 4) Definir niveles esperados
+lvls <- c("real", "ia")
+
+# 5) Convertir a factor con los mismos niveles
+results$label <- factor(results$label, levels = lvls)
+results$pred  <- factor(results$pred,  levels = lvls)
+```
+
+```{r}
+library(caret)
+
+cm <- confusionMatrix(results$pred, results$label)
+cm
+```
+```{r}
+tab <- table(Prediction = results$pred, Reference = results$label)
+tab
+
+```
+```{r}
+roc_obj <- roc(df_test_ml$label, p, levels = c("real","ia"))
+coords(roc_obj, "best", best.method = "youden",
+       ret = c("threshold","sensitivity","specificity"))
+
+```
+
+```{r}
+
+thr <- 1.261781e-05	
+
+pred_thr <- factor(ifelse(p >= thr, "ia", "real"), levels = c("real","ia"))
+cm_thr <- confusionMatrix(pred_thr, df_test_ml$label)
+cm_thr
+cm_thr$table
+```
+
+
+____________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________
+____________________________________________________________________________________________________________________
+
+```{r}
+library(av)
+library(tuneR)
+library(seewave)
+```
+
+
+```{r}
+# Convierte un archivo .m4a a .wav y lo guarda en la carpeta "Audioswav_prueba"
+# Parámetros:
+#  - input_m4a: ruta del archivo .m4a de entrada
+#  - sample_rate: frecuencia de muestreo del audio de salida (Hz)
+
+convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
+  # Crear carpeta de salida si no existe
+  dir.create("Audioswav_prueba", showWarnings = FALSE)
+  
+  # Nombre del archivo sin extensión
+  base_name <- tools::file_path_sans_ext(basename(input_m4a))
+  
+  # Ruta de salida dentro de Audioswav_prueba
+  output_wav <- file.path("Audioswav_prueba", paste0(base_name, ".wav"))
+  
+  # OJO: llamada por posición, sin "input =" ni "output ="
+  av_audio_convert(
+    input_m4a,        # archivo de entrada
+    output_wav,       # archivo de salida
+    channels    = 1,
+    sample_rate = sample_rate
+  )
+  
+  return(output_wav)
+}
+
+# Carpeta raíz donde están los audios
+input_dir <- "FrasesMA"
+
+# Lista de TODOS los .m4a dentro de la carpeta y subcarpetas
+m4a_files <- list.files(
+  path       = input_dir,
+  pattern    = "\\.m4a$",
+  recursive  = TRUE,     # <-- incluye subcarpetas (como "Voz IA")
+  full.names = TRUE
+)
+
+# Convertir todos a wav dentro de "Audioswav"
+rutas_wav <- sapply(m4a_files, convertir_m4a_a_wave)
+
+rutas_wav  # aquí tienes las rutas de los wav generados
+
+#IMPORTANTE: LOS AUDIOS IA NO LOS COGE PORQUE YA ESTAN EN WAV: Podriamos simplemente copiarlos y pegarlos en la carpeta final donde estaran los audios. 
+```
+
+

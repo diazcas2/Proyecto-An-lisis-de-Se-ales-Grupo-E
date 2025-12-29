@@ -1,0 +1,110 @@
+---
+title: "files_split"
+author: "Álvaro Nieva Valenzuela"
+date: "2025-12-28"
+output: html_document
+---
+
+```{r}
+# ------------------------------------------------------------
+# Split 80/20 por carpeta: fake -> fake_test, real -> real_test
+# ------------------------------------------------------------
+
+set.seed(123)  # para reproducibilidad (puedes cambiarlo)
+
+# Rutas: ajusta a tu caso
+base_dir  <- "."       # carpeta base donde están fake/real (p.ej. "data")
+fake_dir  <- file.path(base_dir, "fake")
+real_dir  <- file.path(base_dir, "real")
+
+fake_test_dir <- file.path(base_dir, "fake_test")
+real_test_dir <- file.path(base_dir, "real_test")
+
+# TRUE = mover (renombrar). FALSE = copiar.
+move_files <- TRUE
+
+# Proporción para test
+test_ratio <- 0.20
+
+# Opcional: filtra por extensiones (recomendado si hay cosas no-audio)
+# Pon NULL para no filtrar.
+allowed_ext <- c("wav", "flac", "mp3", "ogg", "m4a")
+
+list_files <- function(dir_path, allowed_ext = NULL) {
+  files <- list.files(dir_path, full.names = TRUE, recursive = FALSE)
+  files <- files[file.info(files)$isdir == FALSE]
+  if (!is.null(allowed_ext)) {
+    ext <- tolower(tools::file_ext(files))
+    files <- files[ext %in% tolower(allowed_ext)]
+  }
+  files
+}
+
+split_folder <- function(src_dir, dst_dir, test_ratio = 0.20, move_files = TRUE, allowed_ext = NULL) {
+  if (!dir.exists(src_dir)) stop("No existe la carpeta origen: ", src_dir)
+  if (!dir.exists(dst_dir)) dir.create(dst_dir, recursive = TRUE)
+
+  files <- list_files(src_dir, allowed_ext)
+  n <- length(files)
+
+  if (n == 0) {
+    message("No hay archivos en: ", src_dir)
+    return(invisible(list(moved = character(0), kept = character(0))))
+  }
+
+  n_test <- floor(n * test_ratio)
+  if (n_test < 1) {
+    message("Pocos archivos en ", src_dir, " (", n, "). No se mueve nada a test.")
+    return(invisible(list(moved = character(0), kept = files)))
+  }
+
+  test_idx <- sample.int(n, size = n_test, replace = FALSE)
+  test_files <- files[test_idx]
+  keep_files <- files[-test_idx]
+
+  # Construye destinos (mismo nombre de archivo)
+  dest_paths <- file.path(dst_dir, basename(test_files))
+
+  # Evita sobreescritura: si existe, añade sufijo incremental
+  make_unique_path <- function(p) {
+    if (!file.exists(p)) return(p)
+    base <- tools::file_path_sans_ext(basename(p))
+    ext  <- tools::file_ext(p)
+    dirp <- dirname(p)
+    k <- 1
+    repeat {
+      candidate <- file.path(dirp, paste0(base, "_", k, if (nzchar(ext)) paste0(".", ext) else ""))
+      if (!file.exists(candidate)) return(candidate)
+      k <- k + 1
+    }
+  }
+  dest_paths <- vapply(dest_paths, make_unique_path, character(1))
+
+  ok <- logical(length(test_files))
+
+  if (move_files) {
+    ok <- file.rename(test_files, dest_paths)
+  } else {
+    ok <- file.copy(test_files, dest_paths, overwrite = FALSE)
+  }
+
+  if (!all(ok)) {
+    warning("Algunos archivos no se pudieron transferir de ", src_dir, " a ", dst_dir)
+  }
+
+  invisible(list(
+    moved = dest_paths[ok],
+    kept  = keep_files
+  ))
+}
+
+# Ejecuta el split para fake y real
+res_fake <- split_folder(fake_dir, fake_test_dir, test_ratio, move_files, allowed_ext)
+res_real <- split_folder(real_dir, real_test_dir, test_ratio, move_files, allowed_ext)
+
+cat("Resumen:\n")
+cat("fake: movidos a test =", length(res_fake$moved), " | en train =", length(res_fake$kept), "\n")
+cat("real: movidos a test =", length(res_real$moved), " | en train =", length(res_real$kept), "\n")
+
+```
+
