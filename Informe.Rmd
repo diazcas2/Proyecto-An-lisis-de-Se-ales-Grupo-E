@@ -81,11 +81,17 @@ A partir de la máscara temporal resultante, se reconstruyó una señal limpia c
 
 # EXTRACCIÓN DE CARACTERÍSTICAS
 
-\subsection{Clasificación del sexo a partir del pitch}
+\subsection{Period pitch}
 
-Con el objetivo de diferenciar entre voces masculinas y femeninas, se utilizó el **period pitch** de la señal de voz como principal descriptor. Para su estimación, se implementó una función basada en el análisis de autocorrelación, a partir de la cual se obtuvo el período fundamental y, de forma inversa, el valor del pitch.
+Con el objetivo de diferenciar entre voces masculinas y femeninas, se empleó el *period pitch* de la señal de voz como descriptor principal. Este parámetro está directamente relacionado con la frecuencia fundamental de la voz, que corresponde a la vibración periódica más baja producida por las cuerdas vocales y constituye la base sobre la que se construyen el resto de componentes armónicos del habla. La frecuencia fundamental es especialmente relevante porque representa una característica estable de la voz y está estrechamente vinculada a la percepción de si una voz suena más grave o más aguda.
 
-Inicialmente, se realizó una clasificación directa mediante umbrales sobre el valor del pitch, considerando rangos típicos de frecuencia fundamental para voces masculinas y femeninas. Esta aproximación permitió obtener una primera predicción del sexo asociada a cada audio.
+El period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
+
+Diversos estudios en la literatura han documentado rangos característicos de frecuencia fundamental para voces masculinas y femeninas. En particular, Rabiner y Schafer describen que las voces masculinas suelen situarse aproximadamente entre 85 y 180 Hz, mientras que las voces femeninas presentan valores más elevados, entre 165 y 255 Hz \cite{rabiner1978}. Resultados similares se reportan en estudios más recientes, donde se observa que las voces masculinas tienden a concentrarse en el rango de 90 a 150 Hz, mientras que las voces femeninas se sitúan aproximadamente entre 190 y 240 Hz \cite{basu2020}.
+
+A partir de estos rangos reportados en la literatura, se definieron umbrales prácticos para la clasificación del sexo basados en el valor del \textit{pitch}. Con el fin de evitar clasificaciones forzadas en zonas de solapamiento entre ambos grupos, se estableció una región intermedia de indeterminación. De este modo, se consideraron voces masculinas aquellas con frecuencias fundamentales comprendidas entre 85 y 170 Hz, y voces femeninas aquellas con valores entre 180 y 240 Hz.
+
+
 
 ```{r}
 period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {

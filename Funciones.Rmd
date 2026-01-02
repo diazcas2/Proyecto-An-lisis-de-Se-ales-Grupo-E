@@ -83,19 +83,9 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
   period <- lag / fs
   pitch <- 1 / period
 
-  # --- Clasificación por pitch ---
-  gender <- if (pitch < 170) {
-    "Masculina"
-  } else if (pitch > 180) {
-    "Femenina"
-  } else {
-    "Indeterminado"
-  }
-
   list(
     period = period,
     pitch = pitch,
-    gender = gender,
     fs = fs,
     n = n
   )
@@ -109,7 +99,6 @@ La llamada a la función nos devolverá, tal y como se ve en la función, una li
 o1 <- readWave("Audioswav/Oscar a1.wav")
 res <- period_pitch(o1)
 res$pitch
-res$gender
 
 ```
 
@@ -117,46 +106,38 @@ res$gender
 a1 <- readWave("Audioswav/Aza a1.wav")
 res <- period_pitch(a1)
 res$pitch
-res$gender
-
 ```
 ```{r}
 i1 <- readWave("Audioswav/Iyan a1.wav")
 res <- period_pitch(i1)
 res$pitch
-res$gender
 ```
 ```{r}
 m1 <- readWave("Audioswav/MAngeles a1.wav")
 res <- period_pitch(m1)
 res$pitch
-res$gender
 ```
 
 ```{r}
 A1 <- readWave("Audioswav/alvaro a1.wav")
 res <- period_pitch(A1)
 res$pitch
-res$gender
 ```
 ```{r}
 f1 <- readWave("Audioswav/Flor a1.wav")
 res <- period_pitch(f1)
 res$pitch
-res$gender
 ```
 ```{r}
 ia1 <- readWave("Audioswav/Beatriz a1.wav")
 res <- period_pitch(ia1)
 res$pitch
-res$gender
 ```
 
 ```{r}
 en1 <- readWave("Audioswav/Enrique a1.wav")
 res <- period_pitch(en1)
 res$pitch
-res$gender
 ```
 
 
