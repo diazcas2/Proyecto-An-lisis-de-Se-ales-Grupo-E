@@ -160,15 +160,14 @@ Para cada señal se extrajeron distintas características acústicas de bajo niv
 
 Adicionalmente, se calculó el centroide espectral de cada señal, una medida que describe la distribución de la energía en el dominio frecuencial. Este parámetro resultó especialmente útil para analizar diferencias entre voces humanas y voces generadas por sistemas de inteligencia artificial, debido a las variaciones en la dispersión espectral y la presencia de irregularidades propias de la voz humana.
 
-#TODO faltaría añadir el código
 
 
-# MODELOS DE CLASIFICACIÓN
+# MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
 
-\subsection{Clasificación del sexo}
+## Clasificación del sexo
 
 
-\subsection{Clasificación del acento}
+## Clasificación del acento
 
 Además de la clasificación por sexo, se abordó la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. Para esta tarea se empleó un modelo de regresión logística multinomial, adecuado para problemas de clasificación con más de dos clases.
 
@@ -178,9 +177,7 @@ Con el fin de explorar la separabilidad entre clases, se realizó un análisis g
 
 Aunque los resultados muestran que estas características contienen información relevante para la clasificación del acento, el rendimiento del modelo está condicionado por el tamaño reducido del conjunto de datos, por lo que se considera necesario ampliar el número de muestras para obtener conclusiones más robustas.
 
-#TODO faltaría añadir el código
 
-\subsection{Clasificación del origen (IA vs Humano)}
+## Clasificación del origen (IA vs Humano)
 
 
-# VALIDACIÓN DE LOS MODELOS
