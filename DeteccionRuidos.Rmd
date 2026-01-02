@@ -14,13 +14,6 @@ library(seewave)
 library(tuneR)
 ```
 
-```{r}
-# Esto se puede eliminar en un futuro si se hace un bucle que pase todos los audios a las funciones correspondientes
-o1<-readWave('Audioswav_prueba/Oscar a1.wav')
-a1<-readWave('Audioswav_prueba/aza a1.wav')
-plot(o1)
-```
-
 ## Función de zcr
 ```{r}
 zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
@@ -122,13 +115,8 @@ noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.05,
 }
 ```
 
-## Pruebas de funciones
-```{r}
-noise_audio(o1)
-noise_audio(a1)
-```
 
-## Pruebas para eliminar ruido y silencios del audio
+## Eliminar ruido y silencios del audio
 ```{r}
 clean_audio <- function(audio, df_analisis) {
   fs <- audio@samp.rate
@@ -167,14 +155,32 @@ clean_audio <- function(audio, df_analisis) {
 ```
 
 ```{r}
-resultado_analisis <- noise_audio(o1, plot_result = TRUE)
-audio_limpio <- clean_audio(o1, resultado_analisis)
+dir_entrada <- "Audios_finales_conv"
+dir_salida <- "Audios_finales_limp"
 
-# Comparación del audio original y el procesado
-par(mfrow=c(2,1))
-oscillo(o1, title = "Original")
-oscillo(audio_limpio, title = "Procesado")
+if (!dir.exists(dir_salida)) {
+  dir.create(dir_salida)
+}
 
-writeWave(audio_limpio, "Audioswav/Oscar_a1_limpio.wav")
+archivos <- list.files(path = dir_entrada, pattern = "\\.wav$", full.names = TRUE, ignore.case = TRUE)
+
+for (ruta_archivo in archivos) {
+  
+  nombre_archivo <- basename(ruta_archivo)
+  
+  tryCatch({
+    audio_original <- readWave(ruta_archivo)
+    
+    resultado_analisis <- noise_audio(audio_original, plot_result = FALSE)
+    
+    audio_limpio <- clean_audio(audio_original, resultado_analisis)
+    
+    ruta_guardado <- file.path(dir_salida, nombre_archivo)
+      
+    writeWave(audio_limpio, ruta_guardado)
+  }, error = function(e) {
+    message(paste("Error procesando:", nombre_archivo, "-", e$message))
+  })
+}
 ```
 
