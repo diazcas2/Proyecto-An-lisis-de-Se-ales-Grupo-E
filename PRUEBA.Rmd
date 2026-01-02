@@ -14,12 +14,17 @@ library(seewave)
 library(tuneR)
 ```
 
+
 ```{r}
 reglas_nombres <- data.frame(
-  nombre = c("alvaro", "Oscar", "Iyan", "MAngeles", "aza","Flor","Beatriz","Enrique"),
-  sexo   = c("M",      "M",     "M",    "F",     "F", "F","F","M"),
-  origen = c("P",      "P",     "P",    "P",     "P","P","IA","IA"),
-  acento=c("AN","N","N","AN","N","AR","N","N"),
+  nombre = c("alvaro", "Oscar", "Iyan", "MAngeles", "aza","Flor","Beatriz","Enrique",
+             "Alejandra","Alice","Aurora","Bill","Callum","HermanoFlor","Jessica","Luis","Macarena","Rafael","Tito"),
+  sexo   = c("M","M",     "M",    "F",     "F", "F","F","M",
+             "F","F","F","M","M","M","F","M","F","M","M"),
+  origen = c("P","P","P",    "P",     "P","P","IA","IA",
+             "IA","IA","IA","IA","IA","P","IA","IA","IA","IA","IA"),
+  acento=c("AN","N","N","AN","N","AR","N","N",
+           "N","N","N","N","N","AR","N","N","N","N","N"),
   stringsAsFactors = FALSE
 )
 
@@ -223,7 +228,7 @@ voces_modif<-voces_df[-c(1,2,9)]
 voces_modif$origen <- factor(voces_modif$origen)
 voces_modif$acento <- factor(voces_modif$acento)
 
-#mod <- glm(gender ~ ., data = voces_modif, family = binomial(link="logit"))
+mod <- glm(gender ~ ., data = voces_modif, family = binomial(link="logit"))
 summary(mod)
 
 (mod$null.deviance - mod$deviance)/mod$null.deviance
@@ -248,7 +253,7 @@ cv_result$delta
 BUSCAR SI HAY MODELOS MEJORES:
 ```{r}
 mod_simple <- glm(gender ~ period_pitch, data = voces_modif, family = binomial)
-#anova(mod_simple, mod, test = "Chisq")
+anova(mod_simple, mod, test = "Chisq")
 ```
 
 Podemos ver que el simple es mejor que si cogemos todos los datos (era lógico). Veamos que ocurre usando k-fold:
