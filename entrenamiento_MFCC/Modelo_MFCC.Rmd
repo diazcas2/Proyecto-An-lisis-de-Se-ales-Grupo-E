@@ -302,7 +302,7 @@ saveRDS(svm_fit, "testeo_audios_nuestros/svm_fit_nuestro.rds")
 **EVALUACIÓN DEL MODELO CON LA CARPETA TEST**
 
 ```{r}
-svm_fit <- readRDS("modelo_svm_feat.rds")
+svm_fit <- readRDS("testeo_audios_nuestros/svm_fit_nuestro.rds")
 ```
 
 Se crea el dataframe df_test 
@@ -340,6 +340,9 @@ df_test_ok <- df_test[!bad_rows, ] #test “limpio” pero conservando metadatos
 ```{r}
 saveRDS(df_test_ml, "testeo_audios_nuestros/df_test_ml_nuestro.rds")
 saveRDS(df_test_ok, "testeo_audios_nuestros/df_test_ok_nuestro.rds")
+```
+```{r}
+df_test_ml<- readRDS("testeo_audios_nuestros/df_test_ml_nuestro.rds")
 ```
 
 Se usa el modelo entrenado para predecir y obtenemos metricas (ROC, Matriz de confusión)
