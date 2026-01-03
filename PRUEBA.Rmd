@@ -351,26 +351,37 @@ print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
 ```{r}
 library(tuneR)
 
-spectral_centroid <- function(w) {
+spectral_centroid_12 <- function(w, n_parts = 12) {
   fs <- as.numeric(w@samp.rate)
   x  <- as.numeric(w@left)
-
-  # quitar media para estabilidad
-  x <- x - mean(x)
+  x  <- x - mean(x)
 
   N <- length(x)
+  if (N < n_parts * 10 || fs <= 0) return(rep(NA_real_, n_parts))
 
-  X <- fft(x)
-  K <- floor(N / 2) + 1
+  seg_len <- floor(N / n_parts)
+  cents <- rep(NA_real_, n_parts)
 
-  P <- Mod(X[1:K])^2 #potencia espectral
-  denom <- sum(P) #denominador del centroide
-  if (!is.finite(denom) || denom <= 0) return(0)
+  for (i in seq_len(n_parts)) {
+    start <- (i - 1) * seg_len + 1
+    end   <- if (i < n_parts) i * seg_len else N
+    seg <- x[start:end]
+    seg <- seg - mean(seg)
 
-  # Evitar overflow: usar double desde el principio
-  freqs <- as.numeric(0:(K - 1)) * (fs / as.numeric(N))
+    L <- length(seg)
+    if (L < 2) next
 
-  sum(freqs * P) / denom
+    X <- fft(seg)
+    K <- floor(L / 2) + 1
+    P <- Mod(X[1:K])^2
+    denom <- sum(P)
+    if (!is.finite(denom) || denom <= 0) next
+
+    freqs <- as.numeric(0:(K - 1)) * (fs / as.numeric(L))
+    cents[i] <- sum(freqs * P) / denom
+  }
+
+  cents
 }
 ```
 
@@ -382,27 +393,45 @@ files <- list.files(
   full.names = TRUE
 )
 
-# -------- 2) calcular centroides --------
-centroids <- sapply(files, function(f) spectral_centroid(readWave(f)))
+# -------- 2) calcular los 12 centroides por archivo --------
+centroid_mat <- t(sapply(files, function(f) {
+  w <- readWave(f)
+  spectral_centroid_12(w, n_parts = 12)
+}))
+
+colnames(centroid_mat) <- paste0("centroid_", 1:12)
 
 # -------- 3) extraer persona y take del nombre --------
 names_noext <- tools::file_path_sans_ext(basename(files))
 
-# persona = nombre sin " afNUMERO" al final
 person <- sub("\\s+af\\d+$", "", names_noext, ignore.case = TRUE)
 
-# take = afNUMERO (si existe)
 take <- sub("^.*\\s+(af\\d+)$", "\\1", names_noext, ignore.case = TRUE)
 take[!grepl("^af\\d+$", take, ignore.case = TRUE)] <- NA
 
-# -------- 4) data frame final --------
+# -------- 4) variables extra (variación entre centroides) --------
+centroid_sd12    <- apply(centroid_mat, 1, sd, na.rm = TRUE)
+centroid_range12 <- apply(centroid_mat, 1, function(v) max(v, na.rm=TRUE) - min(v, na.rm=TRUE))
+
+# diferencias entre centroides consecutivos: c2-c1, c3-c2, ...
+centroid_diff_mat <- t(apply(centroid_mat, 1, function(v) diff(v)))
+centroid_diff_mean <- apply(abs(centroid_diff_mat), 1, mean, na.rm = TRUE)
+centroid_diff_sd   <- apply(centroid_diff_mat, 1, sd, na.rm = TRUE)
+
+# -------- 5) data frame final --------
 results <- data.frame(
   file = basename(files),
   person = person,
   take = take,
-  centroid_hz = centroids,
+  centroid_sd12 = centroid_sd12,
+  centroid_range12 = centroid_range12,
+  centroid_diff_mean = centroid_diff_mean,
+  centroid_diff_sd = centroid_diff_sd,
   stringsAsFactors = FALSE
 )
+
+# añadir las 12 variables al final
+results <- cbind(results, as.data.frame(centroid_mat))
 
 results
 ```
@@ -414,20 +443,41 @@ Sin embargo, la voz humana tiene más energía dispersa y una mayor fricación i
 # MODELO PARA DIFERENCIAR ENTRE IA Y NO IA
 
 ```{r}
-voces_df$centroid <- sapply(voces_df$señal, function(nombre) {
-  w <- readWave(file.path("Audios_finales_limp", nombre))
-  spectral_centroid(w)
-})
+df_all <- merge(voces_df, results, by.x = "señal", by.y = "file", all.x = TRUE)
+
+# variable binaria objetivo
+df_all$IA_bin <- ifelse(df_all$origen == "IA", 1, 0)
+
+# asegurar factor
+df_all$sexo <- factor(df_all$sexo)
 ```
 
 
 ```{r}
-aggregate(centroid ~ origen + sexo, data = voces_df, summary)
+library(randomForest)
 
-ggplot(voces_df, aes(x = origen, y = centroid, fill = origen)) +
-  geom_boxplot() +
-  facet_wrap(~ sexo) +
-  labs(title = "Centroide espectral: Humano vs IA (por sexo)") +
-  theme_minimal()
+rf_by_sex <- function(df, sex_value, seed=123) {
+  d <- subset(df, sexo == sex_value)
+  feature_cols <- c(paste0("centroid_", 1:12),
+                    "centroid_sd12","centroid_range12","centroid_diff_mean","centroid_diff_sd")
+  d <- d[complete.cases(d[, c("origen", feature_cols)]), ]
+  d$origen <- factor(d$origen)
+
+  set.seed(seed)
+  idx <- sample(nrow(d), size = floor(0.7*nrow(d)))
+  train <- d[idx, ]
+  test <- d[-idx, ]
+
+  rf <- randomForest(x=train[,feature_cols], y=train$origen)
+  pred <- predict(rf, newdata=test[,feature_cols])
+  conf <- table(Real=test$origen, Pred=pred)
+  list(confusion=conf, model=rf)
+}
+
+rf_M <- rf_by_sex(df_all, "M")
+rf_F <- rf_by_sex(df_all, "F")
+
+rf_M$confusion
+rf_F$confusion
 ```
 
