@@ -206,7 +206,7 @@ df_carpeta <- function(df, carpeta) {
 
 DF_CARPETA:
 ```{r}
-voces_df <- df_carpeta(voces_df, "Audios_finales_conv")
+voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
 voces_df$sexo==voces_df$PREDICCIÓN_SEXO
 ```
 
@@ -216,6 +216,28 @@ table(voces_df$PREDICCIÓN_SEXO)
 
 ```{r}
 table(voces_df$sexo)
+```
+*ANÁLISIS EXPLORATORIO:*
+
+```{r}
+summary(voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")])
+```
+
+```{r}
+table(voces_df$sexo)
+```
+
+```{r}
+boxplot(period_pitch ~ sexo,
+        data = voces_df,
+        main = "Distribución del pitch según el sexo",
+        ylab = "Pitch (Hz)",
+        xlab = "Sexo")
+```
+
+```{r}
+vars_num <- voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")]
+round(cor(vars_num, use = "complete.obs"), 2)
 ```
 
 

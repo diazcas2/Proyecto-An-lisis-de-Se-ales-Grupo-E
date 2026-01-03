@@ -2,11 +2,18 @@
 title: "Informe"
 author: "Azahara Martinez"
 date: "2025-12-27"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(seewave)
+library(tuneR)
 ```
 
 # OBJETIVOS DEL PROYECTO
@@ -150,19 +157,182 @@ Para formalizar este proceso, se calibraron umbrales óptimos del centroide espe
 
 # CONSTRUCCIÓN DEL CONJUNTO DE DATOS
 
-Una vez convertidos los audios al formato \texttt{.wav}, se procedió a la construcción de un conjunto de datos estructurado que permitiese almacenar, para cada señal de voz, tanto sus características acústicas como sus etiquetas asociadas. Para ello, se definió un \textit{dataframe} donde cada fila representa un audio y cada columna una variable relevante para el análisis.
+Para organizar y analizar los 466 audios, se creó un dataframe que contiene las características y etiquetas de cada audio, donde denotamos: 
 
-```{r}
+\begin{itemsize}
+\item M: masculino / F: femenino
+\item P: persona / IA: IA
+\item AN: andaluz / AR: argentino / N: neutro
+\end{itemsize}
+
+Primero, se creó un dataframe que etiquetara cada persona con su sexo, origen y acento, mediante la función `etiquetar_por_nombre()`, que compara el nombre del archivo con los nombres del dataframe de reglas y devuelve las etiquetas correspondientes.
+
+```{r, include = FALSE}
+reglas_nombres <- data.frame(
+  nombre = c("alvaro", "Oscar", "Iyan", "MAngeles", "aza","Flor","Beatriz","Enrique",
+             "Alejandra","Alice","Aurora","Bill","Callum","HermanoFlor","Jessica","Luis","Macarena","Rafael","Tito"),
+  sexo   = c("M","M",     "M",    "F",     "F", "F","F","M",
+             "F","F","F","M","M","M","F","M","F","M","M"),
+  origen = c("P","P","P",    "P",     "P","P","IA","IA",
+             "IA","IA","IA","IA","IA","P","IA","IA","IA","IA","IA"),
+  acento=c("AN","N","N","AN","N","AR","N","N",
+           "N","N","N","N","N","AR","N","N","N","N","N"),
+  stringsAsFactors = FALSE
+)
+
+reglas_nombres$nombre <- tolower(gsub("\\s+", "", reglas_nombres$nombre))
 
 ```
 
+```{r, include = FALSE}
+etiquetar_por_nombre <- function(nombre_archivo, reglas) {
+  
+  for (i in seq_len(nrow(reglas))) {
+    if (grepl(reglas$nombre[i], nombre_archivo)) {
+      return(list(
+        sexo = reglas$sexo[i],
+        origen = reglas$origen[i],
+        acento=reglas$acento[i]
+      ))
+    }
+  }
+  
+  return(list(
+    sexo = NA,
+    origen = NA,
+    acento=NA
+  ))
+}
+```
 
-Las etiquetas de sexo, origen (persona o voz generada por IA) y acento se asignaron de forma automática a partir del nombre del archivo, utilizando un conjunto de reglas previamente definidas. Este enfoque permitió etiquetar los datos de manera consistente sin necesidad de intervención manual.
 
-Para cada señal se extrajeron distintas características acústicas de bajo nivel, entre las que se incluyen la duración del audio, la tasa de cruces por cero (ZCR) y la energía RMS, utilizadas como descriptores básicos de la señal. Asimismo, se calculó el \textit{period pitch} mediante un análisis de autocorrelación, obteniendo una estimación de la frecuencia fundamental de la voz, que posteriormente se empleó en tareas de clasificación de género.
+A continuación, para cada audio se incluyeron las siguientes variables: duración, zcr, energía rms y pitch. Para ello se utilizó la función `añadir_voz()` la cuál recibe un archivo de audio, extrae sus características, asigna las etiquetas usando la función anterior y añade toda la información como una nueva fila al dataframe. Así, cada fila del dataframe corresponde a un audio individual, con sus características numéricas y etiquetas.
 
-Adicionalmente, se calculó el centroide espectral de cada señal, una medida que describe la distribución de la energía en el dominio frecuencial. Este parámetro resultó especialmente útil para analizar diferencias entre voces humanas y voces generadas por sistemas de inteligencia artificial, debido a las variaciones en la dispersión espectral y la presencia de irregularidades propias de la voz humana.
+```{r, include=FALSE}
+voces_df <- data.frame(
+  señal = character(),
+  sexo = character(),
+  origen = character(),
+  acento = character(),
+  duracion = numeric(),
+  zcr = numeric(),
+  energia_rms = numeric(),
+  pitch = numeric(),        
+  PREDICCIÓN_SEXO = character(),
+  stringsAsFactors = FALSE
+)
 
+
+añadir_voz <- function(df, ruta_wav) {
+  
+  # Leemos el audio
+  audio <- readWave(ruta_wav)
+  fs <- audio@samp.rate
+  señal_audio <- audio@left
+  
+  # Duración
+  duracion <- length(señal_audio) / fs
+  
+  # Zero Crossing Rate
+ zcr <- mean(zcr(señal_audio, f = fs,plot = F))
+  
+  # Energía RMS
+  energia_rms <- sqrt(mean(señal_audio^2))
+  
+  # Etiquetado 
+  nombre_archivo <- tolower(basename(ruta_wav))
+  nombre_archivo <- gsub("\\s+", "", nombre_archivo)
+
+  etiquetas <- etiquetar_por_nombre(nombre_archivo, reglas_nombres)
+
+  sexo <- etiquetas$sexo
+  origen <- etiquetas$origen
+  acento<-etiquetas$acento
+  
+  #PERIOD PITCH:
+  pitch_res <- period_pitch(audio)
+  pitch <- pitch_res$pitch
+  pitch_gender <- pitch_res$gender
+  
+  # Nueva fila
+  nueva_fila <- data.frame(
+    señal = basename(ruta_wav),
+    sexo = sexo,
+    origen=origen,
+    acento = acento,
+    duracion = duracion,
+    zcr = zcr,
+    energia_rms = energia_rms,
+    period_pitch = pitch,
+    PREDICCIÓN_SEXO = pitch_gender,
+    stringsAsFactors = FALSE
+  )
+  
+  df <- rbind(df, nueva_fila)
+  return(df)
+}
+
+
+```
+
+Cabe destacar que todas las características consideradas en el conjunto de datos están definidas como medias o medidas normalizadas respecto a la longitud de la señal, de modo que no dependen de la duración total del audio. En consecuencia, el proceso de eliminación de silencios únicamente reduce las regiones no informativas de la señal, sin afectar a la coherencia ni a la comparabilidad de las características extraídas entre distintos audios.
+
+
+
+Para automatizar la creación del dataframe, se implementó la función `df_carpeta()`, que recorre todos los archivos de la carpeta con los audios limpios y aplica `añadir_voz()` a cada uno. De forma que, se obtiene un  dataframe completo, voces_df, con toda la información lista para análisis y clasificación.
+
+```{r, include=FALSE}
+df_carpeta <- function(df, carpeta) {
+  archivos <- list.files(
+    path = carpeta,
+    pattern = "\\.wav$",
+    full.names = TRUE
+  )
+  
+  for (ruta in archivos) {
+    df <- añadir_voz(df, ruta)
+  }
+  
+  return(df)
+}
+
+```
+
+```{r, include=FALSE}
+voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
+```
+
+
+# ANÁLISIS EXPLORATORIO
+
+Antes de aplicar los métodos de clasificación, se realizó un análisis exploratorio del conjunto de datos con el objetivo de comprender la distribución de las variables y detectar posibles patrones relevantes. Así, el conjunto de datos final está compuesto por 466 audios, con una distribución equilibrada entre voces femeninas (240) y masculinas (226), lo que reduce la posibilidad de sesgos derivados del desbalanceo de clases.
+
+```{r, include=FALSE}
+table(voces_df$sexo)
+```
+
+Tras hacer un análisis descriptivo usando `summary()`, se puede ver que la duración de los audios después de limpiarlos y eliminar los silencios presenta una variabilidad moderada, con valores comprendidos aproximadamente entre 1.5 y 5 segundos. Por otro lado, las características ZCR y energía RMS presentan rangos consistentes y valores medios estables, indicando señales con contenido sonoro continuo y sin presencia dominante de ruido. 
+
+```{r, include=FALSE}
+summary(voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")])
+```
+
+En cuanto a la frecuencia fundamental (pitch), se observa un rango amplio de valores (aproximadamente entre 80 y 285 Hz), consistente con voces humanas. El análisis por sexo revela que las voces femeninas presentan valores de pitch más elevados que las masculinas. Si lo representamos usando un diagrama de cajas, podemos ver un solapamiento entre ambas distribuciones, lo que indica que probablemente existan errores de clasificación en algunos audios concretos al emplear únicamente esta característica.
+
+```{r, echo=TRUE}
+boxplot(period_pitch ~ sexo,
+        data = voces_df,
+        main = "Distribución del pitch según el sexo",
+        ylab = "Pitch (Hz)",
+        xlab = "Sexo")
+```
+
+Por último, el análisis de correlación entre las variables numéricas muestra una alta correlación entre la duración y la ZCR, mientras que el pitch presenta una correlación prácticamente nula con el resto de variables. Esto sugiere que el pitch aporta información complementaria y relevante para la tarea de clasificación.
+
+```{r, echo=TRUE}
+vars_num <- voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")]
+round(cor(vars_num, use = "complete.obs"), 2)
+```
 
 
 # MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
