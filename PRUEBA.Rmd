@@ -14,12 +14,17 @@ library(seewave)
 library(tuneR)
 ```
 
+
 ```{r}
 reglas_nombres <- data.frame(
-  nombre = c("alvaro", "Oscar", "Iyan", "MAngeles", "aza","Flor","Beatriz","Enrique"),
-  sexo   = c("M",      "M",     "M",    "F",     "F", "F","F","M"),
-  origen = c("P",      "P",     "P",    "P",     "P","P","IA","IA"),
-  acento=c("AN","N","N","AN","N","AR","N","N"),
+  nombre = c("alvaro", "Oscar", "Iyan", "MAngeles", "aza","Flor","Beatriz","Enrique",
+             "Alejandra","Alice","Aurora","Bill","Callum","HermanoFlor","Jessica","Luis","Macarena","Rafael","Tito"),
+  sexo   = c("M","M",     "M",    "F",     "F", "F","F","M",
+             "F","F","F","M","M","M","F","M","F","M","M"),
+  origen = c("P","P","P",    "P",     "P","P","IA","IA",
+             "IA","IA","IA","IA","IA","P","IA","IA","IA","IA","IA"),
+  acento=c("AN","N","N","AN","N","AR","N","N",
+           "N","N","N","N","N","AR","N","N","N","N","N"),
   stringsAsFactors = FALSE
 )
 
@@ -201,7 +206,7 @@ df_carpeta <- function(df, carpeta) {
 
 DF_CARPETA:
 ```{r}
-voces_df <- df_carpeta(voces_df, "Audios_finales_conv")
+voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
 voces_df$sexo==voces_df$PREDICCIÓN_SEXO
 ```
 
@@ -211,6 +216,28 @@ table(voces_df$PREDICCIÓN_SEXO)
 
 ```{r}
 table(voces_df$sexo)
+```
+*ANÁLISIS EXPLORATORIO:*
+
+```{r}
+summary(voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")])
+```
+
+```{r}
+table(voces_df$sexo)
+```
+
+```{r}
+boxplot(period_pitch ~ sexo,
+        data = voces_df,
+        main = "Distribución del pitch según el sexo",
+        ylab = "Pitch (Hz)",
+        xlab = "Sexo")
+```
+
+```{r}
+vars_num <- voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")]
+round(cor(vars_num, use = "complete.obs"), 2)
 ```
 
 
@@ -223,12 +250,12 @@ voces_modif<-voces_df[-c(1,2,9)]
 voces_modif$origen <- factor(voces_modif$origen)
 voces_modif$acento <- factor(voces_modif$acento)
 
-#mod <- glm(gender ~ ., data = voces_modif, family = binomial(link="logit"))
+mod <- glm(gender ~ ., data = voces_modif, family = binomial(link="logit"))
 summary(mod)
 
 (mod$null.deviance - mod$deviance)/mod$null.deviance
 par(mfrow = c(2,2))
-plot(mod)
+#plot(mod)
 ```
 
 K-FOLD PORQUE NO HAY SUFICIENTES DATOS:
@@ -248,7 +275,7 @@ cv_result$delta
 BUSCAR SI HAY MODELOS MEJORES:
 ```{r}
 mod_simple <- glm(gender ~ period_pitch, data = voces_modif, family = binomial)
-#anova(mod_simple, mod, test = "Chisq")
+anova(mod_simple, mod, test = "Chisq")
 ```
 
 Podemos ver que el simple es mejor que si cogemos todos los datos (era lógico). Veamos que ocurre usando k-fold:
@@ -291,7 +318,8 @@ voces_modif$acento <- as.factor(voces_modif$acento)
 
 # Crear el modelo para predecir ACENTO
 # Usamos ZCR y Energía como sugeriste
-mod_acento <- multinom(acento ~ zcr + energia_rms + duracion, data = voces_modif)
+
+mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch, data = voces_modif, maxit=500)
 
 summary(mod_acento)
 ```
@@ -323,58 +351,87 @@ print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
 ```{r}
 library(tuneR)
 
-spectral_centroid <- function(w) {
+spectral_centroid_12 <- function(w, n_parts = 12) {
   fs <- as.numeric(w@samp.rate)
   x  <- as.numeric(w@left)
-
-  # quitar media para estabilidad
-  x <- x - mean(x)
+  x  <- x - mean(x)
 
   N <- length(x)
+  if (N < n_parts * 10 || fs <= 0) return(rep(NA_real_, n_parts))
 
-  X <- fft(x)
-  K <- floor(N / 2) + 1
+  seg_len <- floor(N / n_parts)
+  cents <- rep(NA_real_, n_parts)
 
-  P <- Mod(X[1:K])^2 #potencia espectral
-  denom <- sum(P) #denominador del centroide
-  if (!is.finite(denom) || denom <= 0) return(0)
+  for (i in seq_len(n_parts)) {
+    start <- (i - 1) * seg_len + 1
+    end   <- if (i < n_parts) i * seg_len else N
+    seg <- x[start:end]
+    seg <- seg - mean(seg)
 
-  # Evitar overflow: usar double desde el principio
-  freqs <- as.numeric(0:(K - 1)) * (fs / as.numeric(N))
+    L <- length(seg)
+    if (L < 2) next
 
-  sum(freqs * P) / denom
+    X <- fft(seg)
+    K <- floor(L / 2) + 1
+    P <- Mod(X[1:K])^2
+    denom <- sum(P)
+    if (!is.finite(denom) || denom <= 0) next
+
+    freqs <- as.numeric(0:(K - 1)) * (fs / as.numeric(L))
+    cents[i] <- sum(freqs * P) / denom
+  }
+
+  cents
 }
 ```
 
 ```{r}
 # -------- 1) listar todos los wav de la carpeta --------
 files <- list.files(
-  "Audioswav_prueba",
+  "Audios_finales_limp",
   pattern = "\\.wav$",
   full.names = TRUE
 )
 
-# -------- 2) calcular centroides --------
-centroids <- sapply(files, function(f) spectral_centroid(readWave(f)))
+# -------- 2) calcular los 12 centroides por archivo --------
+centroid_mat <- t(sapply(files, function(f) {
+  w <- readWave(f)
+  spectral_centroid_12(w, n_parts = 12)
+}))
 
-# -------- 3) extraer persona y toma del nombre --------
+colnames(centroid_mat) <- paste0("centroid_", 1:12)
+
+# -------- 3) extraer persona y take del nombre --------
 names_noext <- tools::file_path_sans_ext(basename(files))
 
-# persona = nombre sin " a1 / a2 / a3"
-person <- sub("\\s+a\\d+$", "", names_noext, ignore.case = TRUE)
+person <- sub("\\s+af\\d+$", "", names_noext, ignore.case = TRUE)
 
-# toma = a1 / a2 / a3
-take <- sub("^.*\\s+(a\\d+)$", "\\1", names_noext, ignore.case = TRUE)
-take[!grepl("^a\\d+$", take, ignore.case = TRUE)] <- NA
+take <- sub("^.*\\s+(af\\d+)$", "\\1", names_noext, ignore.case = TRUE)
+take[!grepl("^af\\d+$", take, ignore.case = TRUE)] <- NA
 
-# -------- 4) data frame final --------
+# -------- 4) variables extra (variación entre centroides) --------
+centroid_sd12    <- apply(centroid_mat, 1, sd, na.rm = TRUE)
+centroid_range12 <- apply(centroid_mat, 1, function(v) max(v, na.rm=TRUE) - min(v, na.rm=TRUE))
+
+# diferencias entre centroides consecutivos: c2-c1, c3-c2, ...
+centroid_diff_mat <- t(apply(centroid_mat, 1, function(v) diff(v)))
+centroid_diff_mean <- apply(abs(centroid_diff_mat), 1, mean, na.rm = TRUE)
+centroid_diff_sd   <- apply(centroid_diff_mat, 1, sd, na.rm = TRUE)
+
+# -------- 5) data frame final --------
 results <- data.frame(
   file = basename(files),
   person = person,
   take = take,
-  centroid_hz = centroids,
+  centroid_sd12 = centroid_sd12,
+  centroid_range12 = centroid_range12,
+  centroid_diff_mean = centroid_diff_mean,
+  centroid_diff_sd = centroid_diff_sd,
   stringsAsFactors = FALSE
 )
+
+# añadir las 12 variables al final
+results <- cbind(results, as.data.frame(centroid_mat))
 
 results
 ```
@@ -386,83 +443,41 @@ Sin embargo, la voz humana tiene más energía dispersa y una mayor fricación i
 # MODELO PARA DIFERENCIAR ENTRE IA Y NO IA
 
 ```{r}
-voces_df$centroid <- sapply(voces_df$señal, function(nombre) {
-  w <- readWave(file.path("Audioswav_prueba", nombre))
-  spectral_centroid(w)
-})
+df_all <- merge(voces_df, results, by.x = "señal", by.y = "file", all.x = TRUE)
+
+# variable binaria objetivo
+df_all$IA_bin <- ifelse(df_all$origen == "IA", 1, 0)
+
+# asegurar factor
+df_all$sexo <- factor(df_all$sexo)
 ```
 
 
 ```{r}
-aggregate(centroid ~ origen + sexo, data = voces_df, summary)
+library(randomForest)
 
-ggplot(voces_df, aes(x = origen, y = centroid, fill = origen)) +
-  geom_boxplot() +
-  facet_wrap(~ sexo) +
-  labs(title = "Centroide espectral: Humano vs IA (por sexo)") +
-  theme_minimal()
-```
+rf_by_sex <- function(df, sex_value, seed=123) {
+  d <- subset(df, sexo == sex_value)
+  feature_cols <- c(paste0("centroid_", 1:12),
+                    "centroid_sd12","centroid_range12","centroid_diff_mean","centroid_diff_sd")
+  d <- d[complete.cases(d[, c("origen", feature_cols)]), ]
+  d$origen <- factor(d$origen)
 
-Dentro de los hombres no hay solapamiento, por lo que las clases se podrían separar de forma perfecta con un humbral. 
+  set.seed(seed)
+  idx <- sample(nrow(d), size = floor(0.7*nrow(d)))
+  train <- d[idx, ]
+  test <- d[-idx, ]
 
-Con respecto a las mujeres si hay solapamiento, por lo que habrá alguna muestra mal clasificada. 
-
-```{r}
-best_threshold <- function(df, metric = c("accuracy", "f1")) {
-  metric <- match.arg(metric)
-
-  # nos quedamos con casos válidos
-  d <- df[is.finite(df$centroid) & !is.na(df$origen), ]
-  if (nrow(d) < 4) stop("Muy pocos datos para calibrar umbral.")
-
-  # IA=1, P=0
-  y <- ifelse(d$origen == "IA", 1, 0)
-  x <- d$centroid
-
-  # candidatos: valores únicos del centroide (o sus puntos medios)
-  ux <- sort(unique(x))
-  thr_candidates <- (ux[-1] + ux[-length(ux)]) / 2
-  if (length(thr_candidates) == 0) thr_candidates <- ux
-
-  score_thr <- function(thr) {
-    pred <- ifelse(x < thr, 1, 0)
-
-    TP <- sum(pred == 1 & y == 1)
-    TN <- sum(pred == 0 & y == 0)
-    FP <- sum(pred == 1 & y == 0)
-    FN <- sum(pred == 0 & y == 1)
-
-    acc <- (TP + TN) / (TP + TN + FP + FN)
-
-    prec <- if ((TP + FP) == 0) 0 else TP / (TP + FP)
-    rec  <- if ((TP + FN) == 0) 0 else TP / (TP + FN)
-    f1   <- if ((prec + rec) == 0) 0 else 2 * prec * rec / (prec + rec)
-
-    if (metric == "accuracy") acc else f1
-  }
-
-  scores <- sapply(thr_candidates, score_thr)
-  thr_best <- thr_candidates[which.max(scores)]
-  list(threshold = thr_best, score = max(scores))
+  rf <- randomForest(x=train[,feature_cols], y=train$origen)
+  pred <- predict(rf, newdata=test[,feature_cols])
+  conf <- table(Real=test$origen, Pred=pred)
+  list(confusion=conf, model=rf)
 }
-```
 
-```{r}
-thr_F <- best_threshold(subset(voces_df, sexo == "F"), metric = "f1")
-thr_M <- best_threshold(subset(voces_df, sexo == "M"), metric = "f1")
+rf_M <- rf_by_sex(df_all, "M")
+rf_F <- rf_by_sex(df_all, "F")
 
-thr_F
-thr_M
-```
-
-```{r}
-voces_df$PRED_IA <- NA_character_
-voces_df$PRED_IA[voces_df$sexo == "F"] <- ifelse(voces_df$centroid[voces_df$sexo == "F"] < thr_F$threshold, "IA", "P")
-voces_df$PRED_IA[voces_df$sexo == "M"] <- ifelse(voces_df$centroid[voces_df$sexo == "M"] < thr_M$threshold, "IA", "P")
-```
-
-```{r}
-conf <- table(Real = voces_df$origen, Pred = voces_df$PRED_IA)
-conf
+rf_M$confusion
+rf_F$confusion
 ```
 

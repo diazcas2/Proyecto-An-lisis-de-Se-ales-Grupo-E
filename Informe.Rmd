@@ -2,70 +2,54 @@
 title: "Informe"
 author: "Azahara Martinez"
 date: "2025-12-27"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r, include=FALSE}
+library(seewave)
+library(tuneR)
+```
+
 # OBJETIVOS DEL PROYECTO
+
+El objetivo principal de este trabajo es analizar señales de voz a partir de grabaciones propias y desarrollar modelos de clasificación capaces de identificar distintas características de la señal de audio. Para ello, se parte de un conjunto de audios etiquetados y se emplean técnicas de preprocesado, extracción de características y aprendizaje automático, con el fin de obtener modelos que puedan generalizar su comportamiento ante audios no utilizados durante el entrenamiento.
+
+De manera más específica, los objetivos del trabajo son los siguientes:
+
+* Analizar señales de voz grabadas por los propios autores y prepararlas para su posterior tratamiento mediante técnicas de preprocesado.
+
+* Extraer características acústicas relevantes que permitan describir distintas propiedades de la voz de forma numérica.
+
+* Construir un conjunto de datos estructurado a partir de las características extraídas y las etiquetas conocidas de cada audio.
+
+* Desarrollar y entrenar modelos de clasificación capaces de identificar el sexo del hablante a partir de la señal de voz.
+
+* Desarrollar modelos de clasificación para la identificación del acento, distinguiendo entre español neutro, andaluz y argentino.
+
+* Investigar la viabilidad de diferenciar entre voces humanas y voces generadas por inteligencia artificial a partir de descriptores acústicos.
+
+* Evaluar el rendimiento de los modelos propuestos mediante técnicas de validación adecuadas.
+
 
 # PREPROCESADO
 
-\subsection{Conversión y lectura de audios}
+### Conversión y lectura de audios
 
 Como primer paso del preprocesado, se desarrolló una función para la conversión de archivos de audio desde el formato \texttt{.m4a} al formato \texttt{.wav}, con el objetivo de unificar el tipo de señal y facilitar su posterior análisis. Para ello, se emplearon las librerías \texttt{av} y \texttt{tuneR} de \textsf{R}, que permiten la conversión y lectura de señales de audio de forma eficiente.
 
 ```{r}
-# Convierte un archivo .m4a a .wav y lo guarda en la carpeta "Audioswav_prueba"
-# Parámetros:
-#  - input_m4a: ruta del archivo .m4a de entrada
-#  - sample_rate: frecuencia de muestreo del audio de salida (Hz)
 
-convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
-  # Crear carpeta de salida si no existe
-  dir.create("Audioswav_prueba", showWarnings = FALSE)
-  
-  # Nombre del archivo sin extensión
-  base_name <- tools::file_path_sans_ext(basename(input_m4a))
-  
-  # Ruta de salida dentro de Audioswav_prueba
-  output_wav <- file.path("Audioswav_prueba", paste0(base_name, ".wav"))
-  
-  # OJO: llamada por posición, sin "input =" ni "output ="
-  av_audio_convert(
-    input_m4a,        # archivo de entrada
-    output_wav,       # archivo de salida
-    channels    = 1,
-    sample_rate = sample_rate
-  )
-  
-  return(output_wav)
-}
-
-# Carpeta raíz donde están los audios
-input_dir <- "AudiosOriginales"
-
-# Lista de TODOS los .m4a dentro de la carpeta y subcarpetas
-m4a_files <- list.files(
-  path       = input_dir,
-  pattern    = "\\.m4a$",
-  recursive  = TRUE,     # <-- incluye subcarpetas (como "Voz IA")
-  full.names = TRUE
-)
-
-# Convertir todos a wav dentro de "Audioswav"
-rutas_wav <- sapply(m4a_files, convertir_m4a_a_wave)
-
-rutas_wav  # aquí tienes las rutas de los wav generados
-
-#IMPORTANTE: LOS AUDIOS IA NO LOS COGE PORQUE YA ESTAN EN WAV: Podriamos simplemente copiarlos y pegarlos en la carpeta final donde estaran los audios. 
 ```
 
 La función implementada convierte cada archivo a una señal monofónica con una frecuencia de muestreo de 16 kHz y guarda los archivos resultantes en un directorio específico. Además, se automatizó el proceso para convertir de manera recursiva todos los archivos \texttt{.m4a} contenidos en una carpeta y sus subdirectorios.
 
-\subsection{Detección y eliminación de ruido y silencios}
+### Detección y eliminación de ruido y silencios
 
 Con el objetivo de mejorar la calidad de las señales de voz antes de la extracción de características, se implementó un módulo de detección y eliminación de ruido/silencios basado en medidas temporales por tramas. El audio se segmenta en ventanas cortas (20 ms) con solapamiento del 50\%, lo que permite analizar de forma local la actividad de la señal.
 
@@ -81,11 +65,26 @@ A partir de la máscara temporal resultante, se reconstruyó una señal limpia c
 
 # EXTRACCIÓN DE CARACTERÍSTICAS
 
-\subsection{Clasificación del sexo a partir del pitch}
+Las señales de voz contienen mucha información, pero trabajar directamente con el audio no resulta práctico para entrenar modelos de clasificación. Por ello, es necesario extraer una serie de características numéricas que describan la señal de forma más simple y manejable.
 
-Con el objetivo de diferenciar entre voces masculinas y femeninas, se utilizó el **period pitch** de la señal de voz como principal descriptor. Para su estimación, se implementó una función basada en el análisis de autocorrelación, a partir de la cual se obtuvo el período fundamental y, de forma inversa, el valor del pitch.
+La extracción de características permite resumir aspectos importantes de la voz, como su tono, su energía o cómo se distribuye el sonido en distintas frecuencias. De esta manera, cada audio puede representarse mediante un conjunto de valores que capturan sus propiedades principales, evitando depender de la duración del archivo o de pequeñas variaciones que no aportan información relevante.
 
-Inicialmente, se realizó una clasificación directa mediante umbrales sobre el valor del pitch, considerando rangos típicos de frecuencia fundamental para voces masculinas y femeninas. Esta aproximación permitió obtener una primera predicción del sexo asociada a cada audio.
+Estas características sirven como base para entrenar los modelos utilizados en el proyecto, ya que facilitan la comparación entre distintas voces y permiten identificar patrones asociados a diferentes tipos de hablantes o señales. Gracias a este proceso, es posible abordar tareas de clasificación como la identificación del sexo, el acento o la distinción entre voces humanas y generadas por inteligencia artificial.
+
+### PERIOD PITCH
+
+Con el objetivo de diferenciar entre voces masculinas y femeninas, se empleó el *period pitch* de la señal de voz como descriptor principal. Este parámetro está directamente relacionado con la frecuencia fundamental de la voz, que corresponde a la vibración periódica más baja producida por las cuerdas vocales y constituye la base sobre la que se construyen el resto de componentes armónicos del habla. La frecuencia fundamental es especialmente relevante porque representa una característica estable de la voz y está estrechamente vinculada a la percepción de si una voz suena más grave o más aguda.
+
+El period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
+
+Diversos estudios en la literatura han documentado rangos característicos de frecuencia fundamental para voces masculinas y femeninas. En particular, Rabiner y Schafer describen que las voces masculinas suelen situarse aproximadamente entre 85 y 180 Hz, mientras que las voces femeninas presentan valores más elevados, entre 165 y 255 Hz (Rabiner, 1978). Resultados similares se reportan en estudios más recientes, donde se observa que las voces masculinas tienden a concentrarse en el rango de 90 a 150 Hz, mientras que las voces femeninas se sitúan aproximadamente entre 190 y 240 Hz (Basu, 2020).
+
+A partir de estos rangos reportados en la literatura, se definieron umbrales prácticos para la clasificación del sexo basados en el valor del \textit{pitch}. Con el fin de evitar clasificaciones forzadas en zonas de solapamiento entre ambos grupos, se estableció una región intermedia de indeterminación. De este modo, se consideraron voces masculinas aquellas con frecuencias fundamentales comprendidas entre 85 y 170 Hz, y voces femeninas aquellas con valores entre 180 y 240 Hz.
+
+Para calcular el pitch creamos la siguiente función. Con tal de garantizar la fiabilidad de la estimación, se incorporan una serie de comprobaciones previas sobre la señal de entrada. En primer lugar, se verifica que el audio contenga un número suficiente de muestras, ya que señales excesivamente cortas no permiten identificar una periodicidad clara. Asimismo, la búsqueda del período fundamental se restringe a un rango de retardos coherente con los valores esperados de frecuencia fundamental en voz humana, evitando así detecciones erróneas asociadas a componentes no relevantes de la señal.
+
+En aquellos casos en los que la longitud efectiva de la señal no permite cubrir dicho rango de retardos, el cálculo del pitch se considera no válido. Esta decisión se basa en el hecho de que los métodos basados en autocorrelación solo proporcionan estimaciones fiables en segmentos sonoros suficientemente largos y con una periodicidad bien definida, como ocurre principalmente en las partes vocales del habla.
+
 
 ```{r}
 period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
@@ -125,28 +124,18 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
   period <- lag / fs
   pitch <- 1 / period
 
-  # --- Clasificación por pitch ---
-  gender <- if (pitch < 170) {
-    "Masculina"
-  } else if (pitch > 180) {
-    "Femenina"
-  } else {
-    "Indeterminado"
-  }
-
   list(
     period = period,
     pitch = pitch,
-    gender = gender,
     fs = fs,
     n = n
   )
 }
 ```
 
-\subsection{ZCR/Energía}
+### ZCR/Energía
 
-\subsection{Coeficientes Mel (MFCC) y representación de la señal}
+### Coeficientes Mel (MFCC) y representación de la señal
 
 Como parte de la extracción de características espectrales, se calcularon los coeficientes cepstrales en escala Mel (MFCC), ampliamente utilizados en tareas de análisis de voz por su capacidad de capturar información relacionada con el timbre y la envolvente espectral. Para ello, se aplicó el procedimiento estándar por ventanas cortas: se dividió cada audio en tramas solapadas (ventana de 25 ms y salto de 10 ms), se realizó la transformada rápida de Fourier (FFT) por trama y se obtuvo el espectro de potencia. Posteriormente, dicho espectro se proyectó sobre un banco de filtros en escala Mel (40 bandas), se aplicó una compresión logarítmica y, finalmente, una transformada discreta del coseno (DCT) para obtener un conjunto compacto de coeficientes (12 MFCC por trama). Adicionalmente, se aplicó un pre-énfasis para compensar la caída de energía en altas frecuencias típica de señales de voz.
 
@@ -154,9 +143,8 @@ Con el fin de incorporar información dinámica, se calcularon también las deri
 
 Para adaptar esta representación por tramas a modelos clásicos de aprendizaje automático, cada audio se transformó en un único vector de características agregando estadísticas globales: media y desviación típica de los MFCC, así como de sus derivadas $\Delta$ y $\Delta\Delta$. De este modo, cada clip queda representado por un vector fijo que resume tanto el contenido espectral promedio como su variabilidad temporal.
 
-#TODO faltaría añadir para qué lo hemos usado al final (también podemos explicar que ibámos a usarlo para distinguir IA de humano pero no salía muy allá)
 
-\subsection{Centroide espectral}
+### Centroide espectral
 
 Con el objetivo de diferenciar entre voces humanas y voces generadas por inteligencia artificial, se analizó el centroide espectral de las señales de audio. Este descriptor proporciona una medida de la frecuencia media ponderada por la energía del espectro y está relacionado con la distribución espectral de la señal.
 
@@ -166,32 +154,193 @@ A partir de estas observaciones, se estudió la separabilidad entre clases utili
 
 Para formalizar este proceso, se calibraron umbrales óptimos del centroide espectral de manera independiente para voces masculinas y femeninas, maximizando métricas de rendimiento como la exactitud y la medida F1. Finalmente, se evaluó el rendimiento del clasificador basado en umbrales mediante una matriz de confusión, confirmando un buen desempeño global, especialmente en el caso de las voces masculinas.
 
-#TODO faltaría añadir el código
 
 # CONSTRUCCIÓN DEL CONJUNTO DE DATOS
 
-Una vez convertidos los audios al formato \texttt{.wav}, se procedió a la construcción de un conjunto de datos estructurado que permitiese almacenar, para cada señal de voz, tanto sus características acústicas como sus etiquetas asociadas. Para ello, se definió un \textit{dataframe} donde cada fila representa un audio y cada columna una variable relevante para el análisis.
+Para organizar y analizar los 466 audios, se creó un dataframe que contiene las características y etiquetas de cada audio, donde denotamos: 
 
-```{r}
+\begin{itemsize}
+\item M: masculino / F: femenino
+\item P: persona / IA: IA
+\item AN: andaluz / AR: argentino / N: neutro
+\end{itemsize}
+
+Primero, se creó un dataframe que etiquetara cada persona con su sexo, origen y acento, mediante la función `etiquetar_por_nombre()`, que compara el nombre del archivo con los nombres del dataframe de reglas y devuelve las etiquetas correspondientes.
+
+```{r, include = FALSE}
+reglas_nombres <- data.frame(
+  nombre = c("alvaro", "Oscar", "Iyan", "MAngeles", "aza","Flor","Beatriz","Enrique",
+             "Alejandra","Alice","Aurora","Bill","Callum","HermanoFlor","Jessica","Luis","Macarena","Rafael","Tito"),
+  sexo   = c("M","M",     "M",    "F",     "F", "F","F","M",
+             "F","F","F","M","M","M","F","M","F","M","M"),
+  origen = c("P","P","P",    "P",     "P","P","IA","IA",
+             "IA","IA","IA","IA","IA","P","IA","IA","IA","IA","IA"),
+  acento=c("AN","N","N","AN","N","AR","N","N",
+           "N","N","N","N","N","AR","N","N","N","N","N"),
+  stringsAsFactors = FALSE
+)
+
+reglas_nombres$nombre <- tolower(gsub("\\s+", "", reglas_nombres$nombre))
 
 ```
 
+```{r, include = FALSE}
+etiquetar_por_nombre <- function(nombre_archivo, reglas) {
+  
+  for (i in seq_len(nrow(reglas))) {
+    if (grepl(reglas$nombre[i], nombre_archivo)) {
+      return(list(
+        sexo = reglas$sexo[i],
+        origen = reglas$origen[i],
+        acento=reglas$acento[i]
+      ))
+    }
+  }
+  
+  return(list(
+    sexo = NA,
+    origen = NA,
+    acento=NA
+  ))
+}
+```
 
-Las etiquetas de sexo, origen (persona o voz generada por IA) y acento se asignaron de forma automática a partir del nombre del archivo, utilizando un conjunto de reglas previamente definidas. Este enfoque permitió etiquetar los datos de manera consistente sin necesidad de intervención manual.
 
-Para cada señal se extrajeron distintas características acústicas de bajo nivel, entre las que se incluyen la duración del audio, la tasa de cruces por cero (ZCR) y la energía RMS, utilizadas como descriptores básicos de la señal. Asimismo, se calculó el \textit{period pitch} mediante un análisis de autocorrelación, obteniendo una estimación de la frecuencia fundamental de la voz, que posteriormente se empleó en tareas de clasificación de género.
+A continuación, para cada audio se incluyeron las siguientes variables: duración, zcr, energía rms y pitch. Para ello se utilizó la función `añadir_voz()` la cuál recibe un archivo de audio, extrae sus características, asigna las etiquetas usando la función anterior y añade toda la información como una nueva fila al dataframe. Así, cada fila del dataframe corresponde a un audio individual, con sus características numéricas y etiquetas.
 
-Adicionalmente, se calculó el centroide espectral de cada señal, una medida que describe la distribución de la energía en el dominio frecuencial. Este parámetro resultó especialmente útil para analizar diferencias entre voces humanas y voces generadas por sistemas de inteligencia artificial, debido a las variaciones en la dispersión espectral y la presencia de irregularidades propias de la voz humana.
+```{r, include=FALSE}
+voces_df <- data.frame(
+  señal = character(),
+  sexo = character(),
+  origen = character(),
+  acento = character(),
+  duracion = numeric(),
+  zcr = numeric(),
+  energia_rms = numeric(),
+  pitch = numeric(),        
+  PREDICCIÓN_SEXO = character(),
+  stringsAsFactors = FALSE
+)
 
-#TODO faltaría añadir el código
+
+añadir_voz <- function(df, ruta_wav) {
+  
+  # Leemos el audio
+  audio <- readWave(ruta_wav)
+  fs <- audio@samp.rate
+  señal_audio <- audio@left
+  
+  # Duración
+  duracion <- length(señal_audio) / fs
+  
+  # Zero Crossing Rate
+ zcr <- mean(zcr(señal_audio, f = fs,plot = F))
+  
+  # Energía RMS
+  energia_rms <- sqrt(mean(señal_audio^2))
+  
+  # Etiquetado 
+  nombre_archivo <- tolower(basename(ruta_wav))
+  nombre_archivo <- gsub("\\s+", "", nombre_archivo)
+
+  etiquetas <- etiquetar_por_nombre(nombre_archivo, reglas_nombres)
+
+  sexo <- etiquetas$sexo
+  origen <- etiquetas$origen
+  acento<-etiquetas$acento
+  
+  #PERIOD PITCH:
+  pitch_res <- period_pitch(audio)
+  pitch <- pitch_res$pitch
+  pitch_gender <- pitch_res$gender
+  
+  # Nueva fila
+  nueva_fila <- data.frame(
+    señal = basename(ruta_wav),
+    sexo = sexo,
+    origen=origen,
+    acento = acento,
+    duracion = duracion,
+    zcr = zcr,
+    energia_rms = energia_rms,
+    period_pitch = pitch,
+    PREDICCIÓN_SEXO = pitch_gender,
+    stringsAsFactors = FALSE
+  )
+  
+  df <- rbind(df, nueva_fila)
+  return(df)
+}
 
 
-# MODELOS DE CLASIFICACIÓN
+```
 
-\subsection{Clasificación del sexo}
+Cabe destacar que todas las características consideradas en el conjunto de datos están definidas como medias o medidas normalizadas respecto a la longitud de la señal, de modo que no dependen de la duración total del audio. En consecuencia, el proceso de eliminación de silencios únicamente reduce las regiones no informativas de la señal, sin afectar a la coherencia ni a la comparabilidad de las características extraídas entre distintos audios.
 
 
-\subsection{Clasificación del acento}
+
+Para automatizar la creación del dataframe, se implementó la función `df_carpeta()`, que recorre todos los archivos de la carpeta con los audios limpios y aplica `añadir_voz()` a cada uno. De forma que, se obtiene un  dataframe completo, voces_df, con toda la información lista para análisis y clasificación.
+
+```{r, include=FALSE}
+df_carpeta <- function(df, carpeta) {
+  archivos <- list.files(
+    path = carpeta,
+    pattern = "\\.wav$",
+    full.names = TRUE
+  )
+  
+  for (ruta in archivos) {
+    df <- añadir_voz(df, ruta)
+  }
+  
+  return(df)
+}
+
+```
+
+```{r, include=FALSE}
+voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
+```
+
+
+# ANÁLISIS EXPLORATORIO
+
+Antes de aplicar los métodos de clasificación, se realizó un análisis exploratorio del conjunto de datos con el objetivo de comprender la distribución de las variables y detectar posibles patrones relevantes. Así, el conjunto de datos final está compuesto por 466 audios, con una distribución equilibrada entre voces femeninas (240) y masculinas (226), lo que reduce la posibilidad de sesgos derivados del desbalanceo de clases.
+
+```{r, include=FALSE}
+table(voces_df$sexo)
+```
+
+Tras hacer un análisis descriptivo usando `summary()`, se puede ver que la duración de los audios después de limpiarlos y eliminar los silencios presenta una variabilidad moderada, con valores comprendidos aproximadamente entre 1.5 y 5 segundos. Por otro lado, las características ZCR y energía RMS presentan rangos consistentes y valores medios estables, indicando señales con contenido sonoro continuo y sin presencia dominante de ruido. 
+
+```{r, include=FALSE}
+summary(voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")])
+```
+
+En cuanto a la frecuencia fundamental (pitch), se observa un rango amplio de valores (aproximadamente entre 80 y 285 Hz), consistente con voces humanas. El análisis por sexo revela que las voces femeninas presentan valores de pitch más elevados que las masculinas. Si lo representamos usando un diagrama de cajas, podemos ver un solapamiento entre ambas distribuciones, lo que indica que probablemente existan errores de clasificación en algunos audios concretos al emplear únicamente esta característica.
+
+```{r, echo=TRUE}
+boxplot(period_pitch ~ sexo,
+        data = voces_df,
+        main = "Distribución del pitch según el sexo",
+        ylab = "Pitch (Hz)",
+        xlab = "Sexo")
+```
+
+Por último, el análisis de correlación entre las variables numéricas muestra una alta correlación entre la duración y la ZCR, mientras que el pitch presenta una correlación prácticamente nula con el resto de variables. Esto sugiere que el pitch aporta información complementaria y relevante para la tarea de clasificación.
+
+```{r, echo=TRUE}
+vars_num <- voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")]
+round(cor(vars_num, use = "complete.obs"), 2)
+```
+
+
+# MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
+
+## Clasificación del sexo
+
+
+## Clasificación del acento
 
 Además de la clasificación por sexo, se abordó la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. Para esta tarea se empleó un modelo de regresión logística multinomial, adecuado para problemas de clasificación con más de dos clases.
 
@@ -201,9 +350,7 @@ Con el fin de explorar la separabilidad entre clases, se realizó un análisis g
 
 Aunque los resultados muestran que estas características contienen información relevante para la clasificación del acento, el rendimiento del modelo está condicionado por el tamaño reducido del conjunto de datos, por lo que se considera necesario ampliar el número de muestras para obtener conclusiones más robustas.
 
-#TODO faltaría añadir el código
 
-\subsection{Clasificación del origen (IA vs Humano)}
+## Clasificación del origen (IA vs Humano)
 
 
-# VALIDACIÓN DE LOS MODELOS
