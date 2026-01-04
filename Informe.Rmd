@@ -1,6 +1,6 @@
 ---
 title: "Informe"
-author: "Azahara Martinez"
+author: "Azahara Martinez, María de los Ángeles Díaz, Álvaro Nieva, Iyán Álvarez, Florencia Pellegrini, óscar Camacho"
 date: "2025-12-27"
 output:
   pdf_document: default
@@ -338,6 +338,66 @@ round(cor(vars_num, use = "complete.obs"), 2)
 # MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
 
 ## Clasificación del sexo
+
+A partir del conjunto de características extraídas y del análisis exploratorio realizado, tenemos como objetivo la clasificación del sexo del hablante. De esta forma, se plantea el problema como una clasificación binaria y se emplea un modelo de regresión logística. Este tipo de modelo permite relacionar las características extraídas con la probabilidad de que una voz corresponda a un hablante masculino o femenino. 
+
+Para ello, se codificó la variable objetivo \texttt{sexo} en formato numérico, asignando el valor 1 a las voces femeninas y 0 a las masculinas. Esta transformación permite el uso de modelos probabilísticos basados en regresión logística.
+
+Inicialmente, se ajustó un modelo de regresión logística multivariante que incluía todas las características disponibles en el conjunto de datos: duración, tasa de cruces por cero (ZCR), energía RMS, frecuencia fundamental (pitch), así como las variables categóricas de origen y acento. Este primer modelo tiene como objetivo evaluar la contribución conjunta de todas las variables y explorar posibles relaciones entre ellas y la variable respuesta.
+
+```{r, include=FALSE}
+voces_df$gender <- ifelse(voces_df$sexo == "F", 1, 0)
+table(voces_df$gender)
+
+voces_modif<-voces_df[-c(1,2,9)]
+voces_modif$origen <- factor(voces_modif$origen)
+voces_modif$acento <- factor(voces_modif$acento)
+
+mod <- glm(gender ~ ., data = voces_modif, family = binomial(link="logit"))
+summary(mod)
+
+(mod$null.deviance - mod$deviance)/mod$null.deviance
+par(mfrow = c(2,2))
+```
+
+Al analizar el resumen del modelo de regresión logística completo mediante la función `summary()`, se observó que la única variable estadísticamente significativa para la clasificación del sexo era la frecuencia fundamental (period pitch), mientras que el resto de variables no aportaban evidencia significativa una vez incorporado dicho descriptor. A partir de esta observación, se decidió contrastar un modelo reducido basado exclusivamente en el pitch frente al modelo completo mediante un ANOVA, con el fin de comprobar si la complejidad adicional estaba justificada.
+
+```{r, echo=FALSE}
+mod_simple <- glm(gender ~ period_pitch, data = voces_modif, family = binomial)
+anova(mod_simple, mod, test = "Chisq")
+```
+El contraste mediante ANOVA entre el modelo reducido y el modelo completo muestra que incorporar el resto de variables produce una reducción significativa de la devianza (p < 0.001). No obstante, el análisis individual de los coeficientes revela que únicamente el period pitch resulta estadísticamente significativo, mientras que el resto de variables no aportan información relevante de forma independiente.
+
+
+A continuación, se evaluó el desempeño del modelo reducido en un esquema de entrenamiento y prueba. Para ello, se seleccionó aleatoriamente un $70\%$ de las observaciones para ajustar el modelo y se reservó el $30\%$ para validación.
+
+```{r, include=FALSE}
+set.seed(12)
+train <- sample(nrow(voces_modif),0.7 * nrow (voces_modif))
+mod_pred <- glm(gender ~ period_pitch, family = binomial ( link = logit ) , data =voces_modif[ train ,])
+summary ( mod_pred)
+
+(mod_pred$null.deviance - mod_pred$deviance)/mod_pred$null.deviance
+```
+
+La bondad de ajuste del modelo se reflejó en un pseudo-R² de 0.747, lo que sugiere que aproximadamente el $74.7\%$  de la variabilidad del conjunto de entrenamiento queda explicada por el modelo basado únicamente en el period pitch. Posteriormente, se aplicó el modelo al conjunto de prueba para evaluar su capacidad predictiva.
+
+```{r, include=FALSE}
+pred <- predict(mod_pred, voces_modif[-train,], type = "response")
+cor(pred, voces_modif$gender[-train])
+```
+
+La correlación entre las probabilidades predichas y las clases reales alcanzó un valor de 0.854, evidenciando una buena concordancia entre las predicciones y las etiquetas de sexo. 
+
+```{r, echo=FALSE}
+plot(pred, voces_modif$gender[-train], pch = 20)
+```
+
+Al observar la gráfica de predicciones, se aprecia que la mayoría de los puntos correspondientes a voces masculinas se agrupan cerca de 0, mientras que las voces femeninas se concentran alrededor de 1, lo que indica que el modelo reconoce correctamente la gran mayoría de los casos. Sin embargo, algunos puntos se sitúan en valores intermedios, mostrando incertidumbre en la predicción.
+
+Sin embargo, en el análisis exploratorio vimos que el diagrama de cajas del pitch tenía zonas donde había solapamiento entre los rangos de frecuencia fundamental de hombres y mujeres. Por lo tanto, es probable que los audios con pitch en el rango intermedio sean precisamente los que generan errores de clasificación, reflejando la variabilidad natural del tono de voz y características individuales que no se capturan únicamente con el period pitch.
+
+En conjunto, estos resultados refuerzan que el pitch es el descriptor más relevante para la clasificación del sexo, pero que la superposición natural de frecuencias humanas introduce un margen de error inevitable, explicando los puntos intermedios en la gráfica de predicciones.
 
 
 ## Clasificación del acento

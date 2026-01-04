@@ -354,12 +354,12 @@ library(tuneR)
 spectral_centroid_12 <- function(w, n_parts = 12) {
   fs <- as.numeric(w@samp.rate)
   x  <- as.numeric(w@left)
-  x  <- x - mean(x)
+  x  <- x - mean(x) #evita que se sesgue el centroide a frecuencias bajas
 
   N <- length(x)
-  if (N < n_parts * 10 || fs <= 0) return(rep(NA_real_, n_parts))
+  if (N < n_parts * 10 || fs <= 0) return(rep(NA_real_, n_parts)) #por si el audio es demasiado corto
 
-  seg_len <- floor(N / n_parts)
+  seg_len <- floor(N / n_parts) #número de muestras por segmento
   cents <- rep(NA_real_, n_parts)
 
   for (i in seq_len(n_parts)) {
@@ -369,7 +369,7 @@ spectral_centroid_12 <- function(w, n_parts = 12) {
     seg <- seg - mean(seg)
 
     L <- length(seg)
-    if (L < 2) next
+    if (L < 2) next #por si el segmento es demasiado corto
 
     X <- fft(seg)
     K <- floor(L / 2) + 1
