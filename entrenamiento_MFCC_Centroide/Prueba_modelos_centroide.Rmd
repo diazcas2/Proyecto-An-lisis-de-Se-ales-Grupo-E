@@ -1,0 +1,167 @@
+---
+title: "Prueba_modelos"
+author: "Álvaro Nieva Valenzuela"
+date: "2025-12-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tuneR)
+library(seewave)
+library(caret)
+library(pROC)
+library(dplyr)
+```
+
+**MODELO CON DATASET DE INTERNET**
+
+Se carga el modelo
+
+```{r}
+svm_feat_internet<-readRDS("variables_entrenamiento_internet/svm_fit.rds")
+df_test_internet_ml<-readRDS("variables_entrenamiento_internet/df_test_ml.rds")
+df_test_internet_ok<-readRDS("variables_entrenamiento_internet/df_test_ok.rds")
+```
+
+Testeamos el modelo
+
+```{r}
+# 3) Predicción
+p <- predict(svm_feat_internet, newdata = df_test_internet_ml, type = "prob")[, "ia"]
+pred <- predict(svm_feat_internet, newdata = df_test_internet_ml, type = "raw")
+
+# 4) Métricas
+confusionMatrix(pred, df_test_internet_ml$label)
+
+roc_obj <- roc(response = df_test_internet_ml$label, predictor = p, levels = c("real","ia"))
+auc(roc_obj)
+plot(roc_obj)
+
+# 5) Guardar resultados por archivo
+results <- data.frame(
+  file = df_test_internet_ok$file,
+  label = df_test_internet_ok$label,
+  prob_ia = p,
+  pred = pred,
+  stringsAsFactors = FALSE
+)
+
+```
+Buscamos el umbral óptimo:
+
+```{r}
+roc_obj <- roc(df_test_internet_ml$label, p, levels = c("real","ia"))
+coords(roc_obj, "best", best.method = "youden",
+       ret = c("threshold","sensitivity","specificity"))
+```
+```{r}
+thr <- 0.1164148	
+
+pred_thr <- factor(ifelse(p >= thr, "ia", "real"), levels = c("real","ia"))
+cm_thr <- confusionMatrix(pred_thr, df_test_internet_ml$label)
+cm_thr
+cm_thr$table
+
+```
+
+**MODELO DE INTERNET TESTEADO CON NUESTRO DATASET**
+
+Cargamos modelo y dataframes
+
+```{r}
+df_test_nuestro_ml_total<-readRDS("variables_entrenamiento_nuestro_total/df_test_ml_nuestro_total.rds")
+df_test_nuestro_ok_total<-readRDS("variables_entrenamiento_nuestro_total/df_test_ok_nuestro_total.rds")
+```
+
+Testeamos modelo con nuestro dataframe
+
+```{r}
+# 3) Predicción
+p <- predict(svm_feat_internet, newdata = df_test_nuestro_ml_total, type = "prob")[, "ia"]
+pred <- predict(svm_feat_internet, newdata = df_test_nuestro_ml_total, type = "raw")
+
+# 4) Métricas
+confusionMatrix(pred, df_test_nuestro_ml_total$label)
+
+roc_obj <- roc(response = df_test_nuestro_ml_total$label, predictor = p, levels = c("real","ia"))
+auc(roc_obj)
+plot(roc_obj)
+
+# 5) Guardar resultados por archivo
+results <- data.frame(
+  file = df_test_nuestro_ok_total$file,
+  label = df_test_nuestro_ok_total$label,
+  prob_ia = p,
+  pred = pred,
+  stringsAsFactors = FALSE
+)
+
+```
+Obtenemos el mejor umbral
+
+```{r}
+roc_obj <- roc(df_test_nuestro_ml_total$label, p, levels = c("real","ia"))
+coords(roc_obj, "best", best.method = "youden",
+       ret = c("threshold","sensitivity","specificity"))
+```
+
+```{r}
+thr <-1.261781e-05	
+
+pred_thr <- factor(ifelse(p >= thr, "ia", "real"), levels = c("real","ia"))
+cm_thr <- confusionMatrix(pred_thr, df_test_nuestro_ml_total$label)
+cm_thr
+cm_thr$table
+
+```
+
+**MODELO ENTRENADO CON DATASET NUESTRO TESTEADO CON DATASET NUESTRO**
+
+Cargamos modelo
+
+```{r}
+svm_feat_nuestro<-readRDS("variables_entrenamiento_nuestro/svm_fit_nuestro.rds")
+df_test_nuestro_ml<-readRDS("variables_entrenamiento_nuestro/df_test_ml_nuestro.rds")
+df_test_nuestro_ok<-readRDS("variables_entrenamiento_nuestro/df_test_ok_nuestro.rds")
+```
+
+
+Testeamos modelo con nuestro dataframe
+
+```{r}
+# 3) Predicción
+p <- predict(svm_feat_nuestro, newdata = df_test_nuestro_ml, type = "prob")[, "ia"]
+pred <- predict(svm_feat_nuestro, newdata = df_test_nuestro_ml, type = "raw")
+
+# 4) Métricas
+confusionMatrix(pred, df_test_nuestro_ml$label)
+
+roc_obj <- roc(response = df_test_nuestro_ml$label, predictor = p, levels = c("real","ia"))
+auc(roc_obj)
+plot(roc_obj)
+
+# 5) Guardar resultados por archivo
+results <- data.frame(
+  file = df_test_nuestro_ok$file,
+  label = df_test_nuestro_ok$label,
+  prob_ia = p,
+  pred = pred,
+  stringsAsFactors = FALSE
+)
+
+```
+
+
+Si buscamos el mejor umbral obtenemos uno muy cercado a 0.5 ya que es un clasificador perfecto
+
+```{r}
+roc_obj <- roc(df_test_nuestro_ml$label, p, levels = c("real","ia"))
+coords(roc_obj, "best", best.method = "youden",
+       ret = c("threshold","sensitivity","specificity"))
+```
+
+

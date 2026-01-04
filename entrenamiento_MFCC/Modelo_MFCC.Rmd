@@ -309,8 +309,8 @@ Se crea el dataframe df_test
 
 ```{r}
 df_test <- build_feat_dataframe(
-  real_dir = "for-norm/testing/real",
-  ia_dir   = "for-norm/testing/fake",
+  real_dir = "for-norm/total_real",
+  ia_dir   = "for-norm/total_fake",
   target_sr = 16000,
   dither = FALSE
 )
@@ -338,8 +338,8 @@ df_test_ok <- df_test[!bad_rows, ] #test “limpio” pero conservando metadatos
 ```
 
 ```{r}
-saveRDS(df_test_ml, "testeo_audios_nuestros/df_test_ml_nuestro.rds")
-saveRDS(df_test_ok, "testeo_audios_nuestros/df_test_ok_nuestro.rds")
+saveRDS(df_test_ml, "testeo_audios_nuestros/df_test_ml_nuestro_total.rds")
+saveRDS(df_test_ok, "testeo_audios_nuestros/df_test_ok_nuestro_total.rds")
 ```
 ```{r}
 df_test_ml<- readRDS("testeo_audios_nuestros/df_test_ml_nuestro.rds")

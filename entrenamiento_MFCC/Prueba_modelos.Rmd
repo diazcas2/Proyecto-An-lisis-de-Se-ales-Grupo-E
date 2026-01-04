@@ -73,28 +73,28 @@ cm_thr$table
 Cargamos modelo y dataframes
 
 ```{r}
-df_test_nuestro_ml<-readRDS("testeo_audios_nuestros/df_test_ml_nuestro.rds")
-df_test_nuestro_ok<-readRDS("testeo_audios_nuestros/df_test_ok_nuestro.rds")
+df_test_nuestro_ml_total<-readRDS("testeo_audios_nuestros/df_test_ml_nuestro_total.rds")
+df_test_nuestro_ok_total<-readRDS("testeo_audios_nuestros/df_test_ok_nuestro_total.rds")
 ```
 
 Testeamos modelo con nuestro dataframe
 
 ```{r}
 # 3) Predicción
-p <- predict(svm_feat_internet, newdata = df_test_nuestro_ml, type = "prob")[, "ia"]
-pred <- predict(svm_feat_internet, newdata = df_test_nuestro_ml, type = "raw")
+p <- predict(svm_feat_internet, newdata = df_test_nuestro_ml_total, type = "prob")[, "ia"]
+pred <- predict(svm_feat_internet, newdata = df_test_nuestro_ml_total, type = "raw")
 
 # 4) Métricas
-confusionMatrix(pred, df_test_nuestro_ml$label)
+confusionMatrix(pred, df_test_nuestro_ml_total$label)
 
-roc_obj <- roc(response = df_test_nuestro_ml$label, predictor = p, levels = c("real","ia"))
+roc_obj <- roc(response = df_test_nuestro_ml_total$label, predictor = p, levels = c("real","ia"))
 auc(roc_obj)
 plot(roc_obj)
 
 # 5) Guardar resultados por archivo
 results <- data.frame(
-  file = df_test_nuestro_ok$file,
-  label = df_test_nuestro_ok$label,
+  file = df_test_nuestro_ok_total$file,
+  label = df_test_nuestro_ok_total$label,
   prob_ia = p,
   pred = pred,
   stringsAsFactors = FALSE
@@ -125,6 +125,8 @@ Cargamos modelo
 
 ```{r}
 svm_feat_nuestro<-readRDS("testeo_audios_nuestros/svm_fit_nuestro.rds")
+df_test_nuestro_ml<-readRDS("testeo_audios_nuestros/df_test_ml_nuestro.rds")
+df_test_nuestro_ok<-readRDS("testeo_audios_nuestros/df_test_ok_nuestro.rds")
 ```
 
 
