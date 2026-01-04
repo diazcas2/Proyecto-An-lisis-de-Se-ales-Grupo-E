@@ -1,16 +1,23 @@
 ---
 title: "Informe"
-author: "Azahara Martinez, María de los Ángeles Díaz, Álvaro Nieva, Iyán Álvarez,
-Florencia Pellegrini, óscar Camacho"
-date: "2025-12-27"
+author:
+- "Azahara Martínez, María de los Ángeles Díaz,Álvaro Nieva, Iyán Álvarez,"
+- "Florencia Pellegrini, Óscar Camacho"
+date: "2026-01-14"
 output:
   pdf_document: default
   html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  fig.width = 7,   # Ancho global
+  fig.height = 5,  # Alto global
+  fig.align = "center",
+  out.width = "80%" # Esto asegura que en el documento final no ocupen todo el ancho
+)
 ```
+
 
 ```{r, include=FALSE}
 library(seewave)
