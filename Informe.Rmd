@@ -59,17 +59,157 @@ La función implementada convierte cada archivo a una señal monofónica con una
 
 ### Detección y eliminación de ruido y silencios
 
-Con el objetivo de mejorar la calidad de las señales de voz antes de la extracción de características, se implementó un módulo de detección y eliminación de ruido/silencios basado en medidas temporales por tramas. El audio se segmenta en ventanas cortas (20 ms) con solapamiento del 50\%, lo que permite analizar de forma local la actividad de la señal.
+Con el objetivo de mejorar la calidad de la base de datos y eliminar segmentos de audio que no aporten información, se implementó un algoritmo para discriminar entre fragmentos correspondientes al habla y aquellos correspondientes a ruidos o silencios, eliminando estos últimos a partir de un análisis de la _Short Time Energy_ (STE) y el _Zero Crossing Rate_ (ZCR). Este procedimiento genera nuevos archivos de audio que contienen únicamente la información acústica relevante.
 
-Para cada trama se calcularon dos descriptores:
+El procesamiento se realizó mediante la creación de ventanas temporales, dividiendo la señal de entrada en tramos de $20$ ms con un solapamiento del $50\%$ entre ventanas consecutivas. Estos parámetros se seleccionaron para garantizar la cuasi-estacionariedad de la señal de voz, permitiendo un análisis espectral y temporal preciso sin perder continuidad en los bordes de cada tramo.
+
+Para cada ventana se calcularon los dos descriptores mencionados anteriormente empleando \texttt{seewave} y \texttt{tuneR}:
 \begin{itemize}
-    \item \textbf{Zero Crossing Rate (ZCR):} tasa de cruces por cero, asociada al contenido de alta frecuencia y útil para caracterizar señales ruidosas o fricativas.
-    \item \textbf{Energía de corto tiempo (STE):} suma de cuadrados de la señal en cada ventana, normalizada en el intervalo $[0,1]$, empleada como indicador de presencia de voz frente a silencio o fondo.
+    \item \textbf{Short Time Energy (STE):} Se calculó como la suma de los cuadrados de la amplitud de la señal en cada ventana, normalizando en el intervalo $[0,1]$. Esta métrica actúa como el discriminador principal, asumiendo que los segmentos de voz presentan una energía significativamente superior frente a los ruidos de fondo o silencios.
+    \item \textbf{Zero Crossing Rate (ZCR):} Se computó la frecuencia con la que la señal cambia de signo dentro de la ventana. Aunque el código permite su uso como criterio secundario para filtrar ruidos con alta frecuencia, en la configuración final se priorizó el criterio del STE.
 \end{itemize}
 
-La detección de ruido se realizó aplicando un criterio umbral sobre la energía: aquellas tramas con energía inferior a un umbral predefinido se etiquetaron como \emph{Ruido/Silencio}, mientras que el resto se consideraron \emph{Voz/Señal}. De forma opcional, se contempló un segundo criterio basado en ZCR para detectar segmentos con alta tasa de cruces por cero y energía baja-media, característicos de siseos o ruido de viento.
+El criterio de decisión se estableció mediante un umbral de energía definido. Aquellos tramos con una energía normalizada inferior a $0.02$ ($2\%$ del máximo) se etiquetaron como \emph{Ruido/Silencio}, mientras que las superiores se clasificaron como \emph{Voz/Señal}. Finalmente, se reconstruyó la señal de audio concatenando temporalmente las muestras correspondientes a los segmentos validos, descartando los tramos de silencio y exportando el resultado limpio a la carpeta de destino para su posterior caracterización.
 
-A partir de la máscara temporal resultante, se reconstruyó una señal limpia concatenando únicamente las muestras correspondientes a tramas etiquetadas como voz. Finalmente, se compararon visualmente las formas de onda original y procesada y se exportó el audio resultante en formato \texttt{.wav} para su uso en las etapas posteriores del sistema.
+```{r, include=FALSE}
+# ZERO CROSSING RATE
+zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
+  fs <- audio@samp.rate
+  wlen <- floor(win_time*fs)
+  
+  zcr_calc <- zcr(audio, wl=wlen, ovlp=overlap, plot=plot_result)
+  df_zcr <- data.frame(time = zcr_calc[, 1], zcr_value = zcr_calc[, 2])
+  return(df_zcr)
+}
+
+# SHORT TIME ENERGY
+ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
+  signal <- audio@left
+  fs <- audio@samp.rate
+  N <- length(signal)
+  
+  overlap_pct <- overlap/100
+  wlen <- floor(win_time*fs)
+  step_size <- floor(wlen * (1 - overlap_pct))
+  num_frames <- floor((N - wlen) / step_size) + 1
+  ste_vec <- numeric(num_frames)
+  time_axis <- numeric(num_frames)
+  
+  # Cálculo de la energía
+  for (i in 1:num_frames) {
+    start_idx <- (i - 1) * step_size + 1
+    end_idx <- start_idx + wlen - 1
+    
+    if(end_idx > N) break
+    
+    window_data <- signal[start_idx:end_idx]
+    
+    ste_vec[i] <- sum(window_data^2)
+    
+    time_axis[i] <- (start_idx + wlen/2) / fs
+  }
+  
+  ste_norm <- (ste_vec - min(ste_vec)) / (max(ste_vec) - min(ste_vec))
+  
+  if (plot_result) {
+    plot(time_axis, ste_norm, type = "l", col = "darkgreen",
+         main = paste("STE Normalizada - Ventana:", wlen/fs*1000, "ms"),
+         xlab = "Tiempo (s)", ylab = "Energía normalizada")
+    grid()
+  }
+  
+  df_ste <- data.frame(time = time_axis, ste = ste_norm)
+  return(df_ste)
+}
+```
+
+```{r, include=FALSE}
+# DETECCIÓN RUIDO/SILENCIO
+
+noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.05, umbral_ste = 0.02, plot_result = T){
+  datos_ste <- ste_audio(audio, win_time, overlap, plot_result = F)
+  datos_zcr <- zcr_audio(audio, win_time, overlap, plot_result = F)
+  
+  # Sincronizar longitudes
+  n_filas <- min(nrow(datos_ste), nrow(datos_zcr))
+  datos_ste <- datos_ste[1:n_filas, ]
+  datos_zcr <- datos_zcr[1:n_filas, ]
+  
+  df_final <- datos_ste
+  df_final$zcr <- datos_zcr$zcr_value
+  df_final$es_ruido <- FALSE
+  
+  # Criterio 1: baja energía = silencio o ruido de fondo
+  df_final$es_ruido[df_final$ste < umbral_ste] <- TRUE
+  
+  # Criterio 2 (opcional): alta ZCR con energía media-baja suele ser ruido de viento o siseo
+  #df_final$es_ruido[df_final$zcr > umbral_zcr & df_final$ste < 0.2] <- TRUE
+  
+  df_final$etiqueta <- ifelse(df_final$es_ruido, "Ruido/Silencio", "Voz/Señal")
+  
+  if (plot_result) {
+    plot(df_final$time, df_final$ste, type = "l", col = "gray", lwd = 2,
+         main = "Detección Ruido", 
+         xlab = "Tiempo (s)", ylab = "Energía Normalizada", ylim = c(0,1))
+    
+    # Ruido
+    points(df_final$time[df_final$es_ruido], 
+           df_final$ste[df_final$es_ruido], 
+           col = rgb(1, 0, 0, 0.5), pch = 16, cex = 0.5)
+    
+    # Señal
+    points(df_final$time[!df_final$es_ruido], 
+           df_final$ste[!df_final$es_ruido], 
+           col = rgb(0, 0.6, 0, 0.5), pch = 16, cex = 0.5)
+           
+    abline(h = umbral_ste, col = "blue", lty = 2, lwd = 2)
+    legend("topright", legend = c("Señal", "Ruido", "Umbral"), 
+           col = c("darkgreen", "red", "blue"), pch = 16, lty = c(NA, NA, 2))
+  }
+  
+  return(df_final)
+}
+```
+
+
+```{r, include=FALSE}
+# ELIMINACIÓN RUIDO/SILENCIO
+
+clean_audio <- function(audio, df_analisis) {
+  fs <- audio@samp.rate
+  
+  # Tiempos donde NO hay ruido
+  tiempos_senal <- df_analisis$time[!df_analisis$es_ruido]
+
+  # Concatenamos solo las muestras que corresponden a tramos de la señal
+  dt <- df_analisis$time[2] - df_analisis$time[1]
+  muestras_por_trama <- floor(dt * fs)
+  
+  indices_validos <- which(!df_analisis$es_ruido)
+  senal_reconstruida <- numeric()
+  
+  vec_logico <- rep(FALSE, length(audio@left))
+  
+  for(idx in indices_validos){
+    # Convertimos el tiempo del tramo a índice de muestra aproximado
+    centro <- df_analisis$time[idx]
+    inicio <- round((centro - dt/2) * fs)
+    fin <- round((centro + dt/2) * fs)
+    
+    # Asegurar límites
+    inicio <- max(1, inicio)
+    fin <- min(length(audio@left), fin)
+    
+    vec_logico[inicio:fin] <- TRUE
+  }
+  
+  samples_limpios <- audio@left[vec_logico]
+  
+  # Creamos un nuevo objeto wave
+  wave_limpio <- Wave(left = samples_limpios, samp.rate = fs, bit = audio@bit)
+  return(wave_limpio)
+}
+```
 
 # EXTRACCIÓN DE CARACTERÍSTICAS
 
@@ -140,8 +280,6 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
   )
 }
 ```
-
-### ZCR/Energía
 
 ### Coeficientes Mel (MFCC) y representación de la señal
 
