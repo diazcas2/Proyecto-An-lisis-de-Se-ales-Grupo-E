@@ -1,6 +1,7 @@
 ---
 title: "Informe"
-author: "Azahara Martinez, María de los Ángeles Díaz, Álvaro Nieva, Iyán Álvarez, Florencia Pellegrini, óscar Camacho"
+author: "Azahara Martinez, María de los Ángeles Díaz, Álvaro Nieva, Iyán Álvarez,
+Florencia Pellegrini, óscar Camacho"
 date: "2025-12-27"
 output:
   pdf_document: default
@@ -73,7 +74,7 @@ Estas características sirven como base para entrenar los modelos utilizados en 
 
 ### PERIOD PITCH
 
-Con el objetivo de diferenciar entre voces masculinas y femeninas, se empleó el *period pitch* de la señal de voz como descriptor principal. Este parámetro está directamente relacionado con la frecuencia fundamental de la voz, que corresponde a la vibración periódica más baja producida por las cuerdas vocales y constituye la base sobre la que se construyen el resto de componentes armónicos del habla. La frecuencia fundamental es especialmente relevante porque representa una característica estable de la voz y está estrechamente vinculada a la percepción de si una voz suena más grave o más aguda.
+El *period pitch* está directamente relacionado con la frecuencia fundamental de la voz, que corresponde a la vibración periódica más baja producida por las cuerdas vocales y constituye la base sobre la que se construyen el resto de componentes armónicos del habla. La frecuencia fundamental es especialmente relevante porque representa una característica estable de la voz y está estrechamente vinculada a la percepción de si una voz suena más grave o más aguda.
 
 El period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
 
@@ -81,12 +82,12 @@ Diversos estudios en la literatura han documentado rangos característicos de fr
 
 A partir de estos rangos reportados en la literatura, se definieron umbrales prácticos para la clasificación del sexo basados en el valor del \textit{pitch}. Con el fin de evitar clasificaciones forzadas en zonas de solapamiento entre ambos grupos, se estableció una región intermedia de indeterminación. De este modo, se consideraron voces masculinas aquellas con frecuencias fundamentales comprendidas entre 85 y 170 Hz, y voces femeninas aquellas con valores entre 180 y 240 Hz.
 
-Para calcular el pitch creamos la siguiente función. Con tal de garantizar la fiabilidad de la estimación, se incorporan una serie de comprobaciones previas sobre la señal de entrada. En primer lugar, se verifica que el audio contenga un número suficiente de muestras, ya que señales excesivamente cortas no permiten identificar una periodicidad clara. Asimismo, la búsqueda del período fundamental se restringe a un rango de retardos coherente con los valores esperados de frecuencia fundamental en voz humana, evitando así detecciones erróneas asociadas a componentes no relevantes de la señal.
+Para calcular el pitch creamos la función `period_pitch` con el fin de garantizar la fiabilidad de la estimación, se incorporan una serie de comprobaciones previas sobre la señal de entrada. En primer lugar, se verifica que el audio contenga un número suficiente de muestras, ya que señales excesivamente cortas no permiten identificar una periodicidad clara. Asimismo, la búsqueda del período fundamental se restringe a un rango de retardos coherente con los valores esperados de frecuencia fundamental en voz humana, evitando así detecciones erróneas asociadas a componentes no relevantes de la señal.
 
 En aquellos casos en los que la longitud efectiva de la señal no permite cubrir dicho rango de retardos, el cálculo del pitch se considera no válido. Esta decisión se basa en el hecho de que los métodos basados en autocorrelación solo proporcionan estimaciones fiables en segmentos sonoros suficientemente largos y con una periodicidad bien definida, como ocurre principalmente en las partes vocales del habla.
 
 
-```{r}
+```{r, include=FALSE}
 period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
 
   # --- Convertir Wave a vector numérico ---
@@ -159,11 +160,11 @@ Para formalizar este proceso, se calibraron umbrales óptimos del centroide espe
 
 Para organizar y analizar los 466 audios, se creó un dataframe que contiene las características y etiquetas de cada audio, donde denotamos: 
 
-\begin{itemsize}
+\begin{itemize}
 \item M: masculino / F: femenino
 \item P: persona / IA: IA
 \item AN: andaluz / AR: argentino / N: neutro
-\end{itemsize}
+\end{itemize}
 
 Primero, se creó un dataframe que etiquetara cada persona con su sexo, origen y acento, mediante la función `etiquetar_por_nombre()`, que compara el nombre del archivo con los nombres del dataframe de reglas y devuelve las etiquetas correspondientes.
 
@@ -218,7 +219,6 @@ voces_df <- data.frame(
   zcr = numeric(),
   energia_rms = numeric(),
   pitch = numeric(),        
-  PREDICCIÓN_SEXO = character(),
   stringsAsFactors = FALSE
 )
 
@@ -252,7 +252,6 @@ añadir_voz <- function(df, ruta_wav) {
   #PERIOD PITCH:
   pitch_res <- period_pitch(audio)
   pitch <- pitch_res$pitch
-  pitch_gender <- pitch_res$gender
   
   # Nueva fila
   nueva_fila <- data.frame(
@@ -264,7 +263,6 @@ añadir_voz <- function(df, ruta_wav) {
     zcr = zcr,
     energia_rms = energia_rms,
     period_pitch = pitch,
-    PREDICCIÓN_SEXO = pitch_gender,
     stringsAsFactors = FALSE
   )
   
@@ -319,7 +317,7 @@ summary(voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")])
 
 En cuanto a la frecuencia fundamental (pitch), se observa un rango amplio de valores (aproximadamente entre 80 y 285 Hz), consistente con voces humanas. El análisis por sexo revela que las voces femeninas presentan valores de pitch más elevados que las masculinas. Si lo representamos usando un diagrama de cajas, podemos ver un solapamiento entre ambas distribuciones, lo que indica que probablemente existan errores de clasificación en algunos audios concretos al emplear únicamente esta característica.
 
-```{r, echo=TRUE}
+```{r, echo=FALSE}
 boxplot(period_pitch ~ sexo,
         data = voces_df,
         main = "Distribución del pitch según el sexo",
@@ -329,7 +327,7 @@ boxplot(period_pitch ~ sexo,
 
 Por último, el análisis de correlación entre las variables numéricas muestra una alta correlación entre la duración y la ZCR, mientras que el pitch presenta una correlación prácticamente nula con el resto de variables. Esto sugiere que el pitch aporta información complementaria y relevante para la tarea de clasificación.
 
-```{r, echo=TRUE}
+```{r, echo=FALSE}
 vars_num <- voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")]
 round(cor(vars_num, use = "complete.obs"), 2)
 ```
@@ -349,7 +347,7 @@ Inicialmente, se ajustó un modelo de regresión logística multivariante que in
 voces_df$gender <- ifelse(voces_df$sexo == "F", 1, 0)
 table(voces_df$gender)
 
-voces_modif<-voces_df[-c(1,2,9)]
+voces_modif<-voces_df[-1]
 voces_modif$origen <- factor(voces_modif$origen)
 voces_modif$acento <- factor(voces_modif$acento)
 
@@ -372,7 +370,7 @@ El contraste mediante ANOVA entre el modelo reducido y el modelo completo muestr
 A continuación, se evaluó el desempeño del modelo reducido en un esquema de entrenamiento y prueba. Para ello, se seleccionó aleatoriamente un $70\%$ de las observaciones para ajustar el modelo y se reservó el $30\%$ para validación.
 
 ```{r, include=FALSE}
-set.seed(12)
+set.seed(0)
 train <- sample(nrow(voces_modif),0.7 * nrow (voces_modif))
 mod_pred <- glm(gender ~ period_pitch, family = binomial ( link = logit ) , data =voces_modif[ train ,])
 summary ( mod_pred)
@@ -380,20 +378,20 @@ summary ( mod_pred)
 (mod_pred$null.deviance - mod_pred$deviance)/mod_pred$null.deviance
 ```
 
-La bondad de ajuste del modelo se reflejó en un pseudo-R² de 0.747, lo que sugiere que aproximadamente el $74.7\%$  de la variabilidad del conjunto de entrenamiento queda explicada por el modelo basado únicamente en el period pitch. Posteriormente, se aplicó el modelo al conjunto de prueba para evaluar su capacidad predictiva.
+La bondad de ajuste del modelo se reflejó en un pseudo-R² de 0.697, lo que sugiere que aproximadamente el $69.7\%$  de la variabilidad del conjunto de entrenamiento queda explicada por el modelo basado únicamente en el period pitch. Posteriormente, se aplicó el modelo al conjunto de prueba para evaluar su capacidad predictiva.
 
 ```{r, include=FALSE}
 pred <- predict(mod_pred, voces_modif[-train,], type = "response")
 cor(pred, voces_modif$gender[-train])
 ```
 
-La correlación entre las probabilidades predichas y las clases reales alcanzó un valor de 0.854, evidenciando una buena concordancia entre las predicciones y las etiquetas de sexo. 
+La correlación entre las probabilidades predichas y las clases reales alcanzó un valor de 0.918, evidenciando una buena concordancia entre las predicciones y las etiquetas de sexo. 
 
 ```{r, echo=FALSE}
 plot(pred, voces_modif$gender[-train], pch = 20)
 ```
 
-Al observar la gráfica de predicciones, se aprecia que la mayoría de los puntos correspondientes a voces masculinas se agrupan cerca de 0, mientras que las voces femeninas se concentran alrededor de 1, lo que indica que el modelo reconoce correctamente la gran mayoría de los casos. Sin embargo, algunos puntos se sitúan en valores intermedios, mostrando incertidumbre en la predicción.
+Al observar la gráfica de predicciones, se aprecia que la mayoría de los puntos correspondientes a voces masculinas se agrupan cerca de 0, mientras que las voces femeninas se concentran alrededor de 1, lo que indica que el modelo reconoce correctamente la mayoría de los casos. Sin embargo, algunos puntos se sitúan en valores intermedios, mostrando incertidumbre en la predicción.
 
 Sin embargo, en el análisis exploratorio vimos que el diagrama de cajas del pitch tenía zonas donde había solapamiento entre los rangos de frecuencia fundamental de hombres y mujeres. Por lo tanto, es probable que los audios con pitch en el rango intermedio sean precisamente los que generan errores de clasificación, reflejando la variabilidad natural del tono de voz y características individuales que no se capturan únicamente con el period pitch.
 

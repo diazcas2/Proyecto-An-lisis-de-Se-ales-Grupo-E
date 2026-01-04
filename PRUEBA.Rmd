@@ -255,7 +255,7 @@ summary(mod)
 
 (mod$null.deviance - mod$deviance)/mod$null.deviance
 par(mfrow = c(2,2))
-#plot(mod)
+plot(mod)
 ```
 
 K-FOLD PORQUE NO HAY SUFICIENTES DATOS:
