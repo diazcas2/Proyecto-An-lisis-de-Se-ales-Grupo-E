@@ -351,6 +351,128 @@ print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
 ```{r}
 library(tuneR)
 
+spectral_centroid <- function(w) {
+  fs <- as.numeric(w@samp.rate)
+  x  <- as.numeric(w@left)
+
+  # quitar media para estabilidad
+  x <- x - mean(x)
+
+  N <- length(x)
+
+  X <- fft(x)
+  K <- floor(N / 2) + 1
+
+  P <- Mod(X[1:K])^2 #potencia espectral
+  denom <- sum(P) #denominador del centroide
+  if (!is.finite(denom) || denom <= 0) return(0)
+
+  # Evitar overflow: usar double desde el principio
+  freqs <- as.numeric(0:(K - 1)) * (fs / as.numeric(N))
+
+  sum(freqs * P) / denom
+}
+```
+
+```{r}
+# listar todos los wav de la carpeta
+files <- list.files(
+  "Audios_finales_limp",
+  pattern = "\\.wav$",
+  full.names = TRUE
+)
+
+# calcular centroides
+centroids <- sapply(files, function(f) spectral_centroid(readWave(f)))
+
+# extraer persona y afNum
+names_noext <- tools::file_path_sans_ext(basename(files))
+
+person <- sub("\\s+af\\d+$", "", names_noext, ignore.case = TRUE)
+
+take <- sub("^.*\\s+(af\\d+)$", "\\1", names_noext, ignore.case = TRUE)
+take[!grepl("^af\\d+$", take, ignore.case = TRUE)] <- NA
+
+# data frame final
+results <- data.frame(
+  file = basename(files),
+  person = person,
+  take = take,
+  centroid_hz = centroids,
+  stringsAsFactors = FALSE
+)
+
+results
+```
+
+En la voz generada por IA el centroide esn más estable y a veces más bajo, ya que el espectro esta demasiado limpio, hay menos micro-ruido, menos irregularidades y la energía está muy bien colocada en formantes.
+
+Sin embargo, la voz humana tiene más energía dispersa y una mayor fricación irregular, respiración y turbulencia real. 
+
+```{r}
+voces_df$centroid <- sapply(voces_df$señal, function(nombre) {
+  w <- readWave(file.path("Audios_finales_limp", nombre))
+  spectral_centroid(w)
+})
+```
+
+
+```{r}
+aggregate(centroid ~ origen + sexo, data = voces_df, summary)
+
+ggplot(voces_df, aes(x = origen, y = centroid, fill = origen)) +
+  geom_boxplot() +
+  facet_wrap(~ sexo) +
+  labs(title = "Centroide espectral: Humano vs IA (por sexo)") +
+  theme_minimal()
+```
+
+```{r}
+library(randomForest)
+
+rf_by_sex <- function(df, sex_value, seed = 123, train_prop = 0.7) {
+  d <- subset(df, sexo == sex_value)
+
+  # nos quedamos con filas válidas
+  d <- d[is.finite(d$centroid) & !is.na(d$origen), ]
+  d$origen <- factor(d$origen)   # niveles: IA / P (o lo que tengas)
+
+  set.seed(seed)
+  idx <- sample(nrow(d), size = floor(train_prop * nrow(d)))
+  train <- d[idx, ]
+  test  <- d[-idx, ]
+
+  rf <- randomForest(origen ~ centroid, data = train)
+
+  pred <- predict(rf, newdata = test)
+  conf <- table(Real = test$origen, Pred = pred)
+
+  list(
+    sex = sex_value,
+    model = rf,
+    confusion = conf,
+    accuracy = sum(diag(conf)) / sum(conf)
+  )
+}
+```
+
+```{r}
+rf_M <- rf_by_sex(voces_df, "M")
+rf_F <- rf_by_sex(voces_df, "F")
+
+rf_M$confusion
+rf_M$accuracy
+
+rf_F$confusion
+rf_F$accuracy
+```
+
+
+# SPECTRAL CENTROID PARTIDO EN 12 CON SD
+
+```{r}
+library(tuneR)
+
 spectral_centroid_12 <- function(w, n_parts = 12) {
   fs <- as.numeric(w@samp.rate)
   x  <- as.numeric(w@left)
@@ -439,6 +561,21 @@ results
 En la voz generada por IA el centroide esn más estable y a veces más bajo, ya que el espectro esta demasiado limpio, hay menos micro-ruido, menos irregularidades y la energía está muy bien colocada en formantes.
 
 Sin embargo, la voz humana tiene más energía dispersa y una mayor fricación irregular, respiración y turbulencia real. 
+
+```{r}
+library(ggplot2)
+
+ggplot(voces_df, aes(x = origen, y = centroid_diff_mean, fill = origen)) +
+  geom_boxplot(alpha = 0.7) +
+  facet_wrap(~ sexo) +
+  labs(
+    title = "Variabilidad temporal del centroide espectral por sexo",
+    x = "Origen de la voz",
+    y = "Desviación típica de las diferencias entre centroides"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
 
 # MODELO PARA DIFERENCIAR ENTRE IA Y NO IA
 
