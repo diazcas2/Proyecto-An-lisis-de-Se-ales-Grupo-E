@@ -292,14 +292,79 @@ Para adaptar esta representación por tramas a modelos clásicos de aprendizaje 
 
 ### Centroide espectral
 
-Con el objetivo de diferenciar entre voces humanas y voces generadas por inteligencia artificial, se analizó el centroide espectral de las señales de audio. Este descriptor proporciona una medida de la frecuencia media ponderada por la energía del espectro y está relacionado con la distribución espectral de la señal.
+#### Centroide espectral global
 
-El análisis mostró que las voces generadas por IA tienden a presentar centroides espectrales más estables y, en muchos casos, más bajos que los de las voces humanas. Esto se debe a que las señales sintéticas suelen carecer de micro-ruido, irregularidades y fenómenos de fricación propios de la producción vocal humana, presentando un espectro más limpio y concentrado en determinadas bandas de frecuencia. Por el contrario, la voz humana exhibe una mayor dispersión espectral debido a la respiración, turbulencia y variabilidad natural del habla.
+El centroide espectral global se calculó como una medida resumen de la distribución energética del espectro de cada señal de audio. Este descriptor representa la frecuencia media ponderada por la potencia espectral y está relacionado con la percepción de brillo del sonido. Para su cálculo, se eliminó previamente el componente de continua de la señal con el fin de evitar un sesgo artificial hacia bajas frecuencias. 
 
-A partir de estas observaciones, se estudió la separabilidad entre clases utilizando diagramas de caja, diferenciando además por sexo. En el caso de las voces masculinas, se observó una clara separación entre las clases humana e IA, sin solapamiento apreciable, lo que permitiría una clasificación casi perfecta mediante un umbral adecuado. En cambio, para las voces femeninas se detectó cierto solapamiento entre ambas clases, implicando la posible aparición de errores de clasificación.
+El análisis del centroide espectral permitió observar diferencias en los valores medios entre voces humanas y voces generadas por inteligencia artificial, especialmente al separar los resultados por sexo. No obstante, aunque este descriptor mostró cierto potencial discriminativo, su uso de forma aislada resultó limitado debido al solapamiento existente entre clases.
 
-Para formalizar este proceso, se calibraron umbrales óptimos del centroide espectral de manera independiente para voces masculinas y femeninas, maximizando métricas de rendimiento como la exactitud y la medida F1. Finalmente, se evaluó el rendimiento del clasificador basado en umbrales mediante una matriz de confusión, confirmando un buen desempeño global, especialmente en el caso de las voces masculinas.
+```{r}
+spectral_centroid <- function(w) {
+  fs <- as.numeric(w@samp.rate)
+  x  <- as.numeric(w@left)
 
+  # quitar media para estabilidad
+  x <- x - mean(x)
+
+  N <- length(x)
+
+  X <- fft(x)
+  K <- floor(N / 2) + 1
+
+  P <- Mod(X[1:K])^2 #potencia espectral
+  denom <- sum(P) #denominador del centroide
+  if (!is.finite(denom) || denom <= 0) return(0)
+
+  # Evitar overflow: usar double desde el principio
+  freqs <- as.numeric(0:(K - 1)) * (fs / as.numeric(N))
+
+  sum(freqs * P) / denom
+}
+```
+
+
+#### Segmentación temporal en 12 partes
+
+Con el objetivo de analizar la evolución temporal del centroide espectral y evaluar la estabilidad espectral de las señales, se propuso una segmentación temporal de cada audio en doce partes consecutivas de igual duración. 
+
+Para cada segmento se calculó de forma independiente el centroide espectral, obteniendo así un vector de doce valores por señal. Esta aproximación permite capturar variaciones temporales del contenido espectral que no son visibles al emplear un único centroide global. A partir de estos valores se derivaron medidas estadísticas como la desviación típica y las diferencias entre centroides consecutivos, con el fin de caracterizar la variabilidad espectral de cada voz. 
+
+Aunque estos descriptores no mostraron una separación clara entre voces humanas y sintéticas cuando se analizaron de forma individual, su combinación permitió capturar patrones más complejos que resultaron útiles en modelos de clasificación no lineales.
+
+```{r}
+spectral_centroid_12 <- function(w, n_parts = 12) {
+  fs <- as.numeric(w@samp.rate)
+  x  <- as.numeric(w@left)
+  x  <- x - mean(x) #evita que se sesgue el centroide a frecuencias bajas
+
+  N <- length(x)
+  if (N < n_parts * 10 || fs <= 0) return(rep(NA_real_, n_parts)) #por si el audio es demasiado corto
+
+  seg_len <- floor(N / n_parts) #número de muestras por segmento
+  cents <- rep(NA_real_, n_parts)
+
+  for (i in seq_len(n_parts)) {
+    start <- (i - 1) * seg_len + 1
+    end   <- if (i < n_parts) i * seg_len else N
+    seg <- x[start:end]
+    seg <- seg - mean(seg)
+
+    L <- length(seg)
+    if (L < 2) next #por si el segmento es demasiado corto
+
+    X <- fft(seg)
+    K <- floor(L / 2) + 1
+    P <- Mod(X[1:K])^2
+    denom <- sum(P)
+    if (!is.finite(denom) || denom <= 0) next
+
+    freqs <- as.numeric(0:(K - 1)) * (fs / as.numeric(L))
+    cents[i] <- sum(freqs * P) / denom
+  }
+
+  cents
+}
+```
 
 # CONSTRUCCIÓN DEL CONJUNTO DE DATOS
 
