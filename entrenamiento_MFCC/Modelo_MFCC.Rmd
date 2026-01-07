@@ -269,6 +269,7 @@ Se ha usado *SVM con kernel RBF (baseline robusto)* por los siguientes motivos:
   - Ser un baseline clásico muy competitivo en problemas de audio con features cepstrales.
 
 ```{r}
+
 #Definición del esquema de validación
 ctrl <- trainControl(
   method = "repeatedcv", #se usa validación cruzada repetida.
@@ -289,7 +290,6 @@ svm_fit <- train(
   preProcess = c("center","scale"), #estandariza los predictores.
   tuneLength = 10 #prueba automáticamente una “rejilla”.
 )
-
 svm_fit
 
 saveRDS(svm_fit, "entrenamiento_MFCC, modelo_svm_feat.rds")
