@@ -839,7 +839,43 @@ En conjunto, estos resultados refuerzan que el pitch es el descriptor más relev
 Además de la clasificación por sexo, se intentó abordar la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. 
 Para esta tarea se planteó el problema como una clasificación multiclase, por lo que realizamos un modelo de regresión logística multinomial, utilizando como variables predictoras descriptores acústicos de bajo nivel, concretamente la tasa de cruces por cero (ZCR), la energía RMS, la duración del audio y el pitch period. Estas características se seleccionaron por su relación con aspectos articulatorios y prosódicos que pueden variar entre acentos.
 
-Con el fin de explorar la separabilidad entre clases, se realizó un análisis gráfico de la distribución del ZCR en función del acento, observándose diferencias apreciables entre algunas categorías. Posteriormente, se ajustó el modelo multinomial y se evaluó su capacidad explicativa mediante el pseudo-$R^2$ de McFadden, comparando la verosimilitud del modelo completo con la de un modelo nulo.
+```{r, include=FALSE}
+#install.packages("nnet")
+library(nnet)
+
+voces_modif$acento <- as.factor(voces_modif$acento)
+
+mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch, data = voces_modif, maxit=500)
+
+summary(mod_acento)
+```
+
+Con el fin de explorar la separabilidad entre clases, se realizó un análisis gráfico de la distribución del ZCR en función del acento, observándose diferencias apreciables entre algunas categorías. 
+
+```{r, include=FALSE}
+library(ggplot2)
+
+ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
+  geom_boxplot() +
+  labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") +
+  theme_minimal()
+```
+
+Posteriormente, se ajustó el modelo multinomial y se evaluó su capacidad explicativa mediante el pseudo-$R^2$ de McFaddenEn modelos de regresión logística (incluida la regresión multinomial) el $R^2$ clásico de regresión lineal no es adecuado, porque no existe una descomposición de la varianza análoga, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, y se define como
+
+$$R^2_{\text{McFadden}} \;=\; 1 - \frac{\log L_{\text{modelo}}}{\log L_{\text{nulo}}}$$
+
+donde $\log L_{\text{modelo}}$ es la log-verosimilitud del modelo completo (con los predictores ZCR, energía RMS, duración y periodo de pitch) y $\log L_{\text{nulo}}$ la de un modelo que solo incluye el intercepto. Valores más altos de $R^2_{\text{McFadden}}~$ indican que el modelo con predictores mejora de forma apreciable la explicación de los datos frente al modelo nulo, mientras que valores cercanos a cero sugieren que las variables empleadas apenas añaden capacidad discriminativa entre acentos.
+
+```{r, include=FALSE}
+logL_modelo <- logLik(mod_acento)
+
+mod_nulo <- nnet::multinom(acento ~ 1, data = voces_modif)
+logL_nulo <- logLik(mod_nulo)
+
+r2_mcfadden <- as.numeric(1 - (logL_modelo / logL_nulo)) #Fórmula de McFadden: 1 - (logL_modelo / logL_nulo)
+print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
+```
 
 Aunque el modelo consigue ajustar los datos disponibles, los resultados no pueden considerarse fiables: el número de muestras por acento no es equitativo dado que en el grupo hay 3 personas que graban audios con acentro español neutro (2 hombres y una mujer), 2 personas que graban audios con acento andaluz (hombre y mujer), y una sola persona con acento argentino (mujer). Es por tanto que la variabilidad interna de cada clase es mínima (varios audios de las mismas voces) y la evaluación se realiza sobre los mismos registros usados para el entrenamiento. En la práctica, el modelo tiende a aprender rasgos de cada locutor concreto más que del acento en sí. Por este motivo, este análisis se interpreta únicamente como una prueba de concepto del flujo de trabajo (extracción de características, ajuste y evaluación de un modelo multinomial), y se concluye que sería necesario un conjunto de datos mucho más amplio, equilibrado y diverso para poder abordar de forma realista la clasificación automática del acento.
 
