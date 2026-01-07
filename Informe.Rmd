@@ -57,11 +57,39 @@ De manera más específica, los objetivos del trabajo son los siguientes:
 
 Como primer paso del preprocesado, se desarrolló una función para la conversión de archivos de audio desde el formato \texttt{.m4a} al formato \texttt{.wav}, con el objetivo de unificar el tipo de señal y facilitar su posterior análisis. Para ello, se emplearon las librerías \texttt{av} y \texttt{tuneR} de \textsf{R}, que permiten la conversión y lectura de señales de audio de forma eficiente.
 
-```{r}
+La función implementada convierte cada archivo a una señal monofónica con una frecuencia de muestreo de 16 kHz y guarda los archivos resultantes en un directorio específico. Además, se automatizó el proceso para convertir de manera recursiva todos los archivos \texttt{.m4a} contenidos en una carpeta y sus subdirectorios. Los audios generados mediante voz sintética (Voz IA) no se incluyen en este proceso, ya que se encuentran originalmente en formato `.wav` y no requieren conversión adicional.
 
+```{r, include=FALSE}
+convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
+ 
+  dir.create("Audios_finales_conv", showWarnings = FALSE)  #creo la carpeta de salida
+  
+  base_name <- tools::file_path_sans_ext(basename(input_m4a)) #nombre archivo
+  
+  output_wav <- file.path("Audios_finales_conv", paste0(base_name, ".wav"))
+  
+  av_audio_convert(
+    input_m4a,        #archivo de entrada
+    output_wav,       #archivo de salida
+    channels    = 1,
+    sample_rate = sample_rate
+  )
+  
+  return(output_wav)
+}
+
+#Carpeta donde están los audios
+input_dir <- "Audios_finales_orig"
+
+m4a_files <- list.files(
+  path       = input_dir,
+  pattern    = "\\.m4a$",
+  recursive  = TRUE,     
+  full.names = TRUE
+)
+
+rutas_wav <- sapply(m4a_files, convertir_m4a_a_wave)
 ```
-
-La función implementada convierte cada archivo a una señal monofónica con una frecuencia de muestreo de 16 kHz y guarda los archivos resultantes en un directorio específico. Además, se automatizó el proceso para convertir de manera recursiva todos los archivos \texttt{.m4a} contenidos en una carpeta y sus subdirectorios.
 
 ### Detección y eliminación de ruido y silencios
 
@@ -836,14 +864,71 @@ En conjunto, estos resultados refuerzan que el pitch es el descriptor más relev
 
 ## Clasificación del acento
 
-Además de la clasificación por sexo, se abordó la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. Para esta tarea se empleó un modelo de regresión logística multinomial, adecuado para problemas de clasificación con más de dos clases.
+Además de la clasificación por sexo, se intentó abordar la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. 
 
-Como variables predictoras se utilizaron descriptores acústicos de bajo nivel, concretamente la tasa de cruces por cero (ZCR), la energía RMS y la duración del audio. Estas características se seleccionaron por su relación con aspectos articulatorios y prosódicos que pueden variar entre acentos.
+Comenzamos haciendo un estudio exploratorio de las características acústicas para comprobar si alguna podía, por sí sola, ayudar a distinguir entre acentos. Nos centramos en la tasa de cruces por cero (ZCR) ya que está muy relacionada con el contenido de altas frecuencias y con la presencia de consonantes fricativas o sonidos sordos, que pueden variar entre acentos, ya sea por mayor aspiración, articulación más “suave” o más “marcada”, etc.
 
-Con el fin de explorar la separabilidad entre clases, se realizó un análisis gráfico de la distribución del ZCR en función del acento, observándose diferencias apreciables entre algunas categorías. Posteriormente, se ajustó el modelo multinomial y se evaluó su capacidad explicativa mediante el pseudo-$R^2$ de McFadden, comparando la verosimilitud del modelo completo con la de un modelo nulo.
+Se representó la distribución del ZCR por acento mediante un diagrama de cajas, del cual se observa que:
 
-Aunque los resultados muestran que estas características contienen información relevante para la clasificación del acento, el rendimiento del modelo está condicionado por el tamaño reducido del conjunto de datos, por lo que se considera necesario ampliar el número de muestras para obtener conclusiones más robustas.
+Las tres categorías (AN: andaluz, AR: argentino, N: neutro) presentan rangos de ZCR parcialmente solapados, lo que indica que no hay una separación clara solo con esta característica.
 
+El acento neutro (N) muestra una mediana de ZCR ligeramente más alta y una dispersión mayor, mientras que AN y AR parecen algo más compactos y con medianas algo inferiores.
+
+Existen algunos outliers en AR y N (valores de ZCR más altos), que podrían corresponder a audios concretos con más ruido, más fricación o peor calidad de grabación.
+
+En conjunto, el boxplot indica que el ZCR contiene cierta información sobre el acento (las distribuciones no son idénticas), pero la superposición tan grande entre cajas apunta a que no es suficiente por sí solo para discriminar con fiabilidad los acentos. Esto motivó a combinar el ZCR con otras características en un modelo multinomial.
+
+```{r, include=FALSE}
+library(ggplot2)
+```
+
+```{r, echo=FALSE}
+ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
+  geom_boxplot() +
+  labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") +
+  theme_minimal()
+```
+
+Dado lo visto y teniendo en cuenta que se trata de una clasificación multiclase, se planteó un modelo de regresión logística multinomial utilizando como predictores varios descriptores acústicos de bajo nivel: ZCR, la energía RMS, la duración del audio y el pitch period. Estas características se eligieron por su relación con aspectos articulatorios y prosódicos que suelen diferir entre acentos:
+
+La energía RMS resume la intensidad media de la señal y puede reflejar diferencias en el patrón de acentuación o en la “fuerza” con la que se articula.
+
+La duración del audio captura diferencias en el tempo o velocidad de habla, ya que algunos acentos tienden a ser más rápidos o más pausados.
+
+El period pitch, inversamente relacionado con la frecuencia fundamental, recoge variaciones en la entonación y altura de la voz, otro rasgo típicamente distintivo entre acentos.
+
+En conjunto, estas variables, permiten modelar tanto aspectos segmentales (contenido en altas frecuencias, presencia de fricativas, etc.) como suprasegmentales (ritmo, intensidad y entonación), que son precisamente los elementos en los que suelen diferir los acentos.
+
+```{r, include=FALSE}
+#install.packages("nnet")
+library(nnet)
+
+voces_modif$acento <- as.factor(voces_modif$acento)
+
+mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch, data = voces_modif, maxit=500)
+
+summary(mod_acento)
+```
+
+Para evaluar la capacidad explicativa del modelo se utilizó el pseudo-$R^2$ de McFadden. En regresión logística el $R^2$ clásico no es adecuado porque no existe una descomposición de la varianza análoga a la de la regresión lineal, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, y se define como
+
+$$R^2_{\text{McFadden}} \;=\; 1 - \frac{\log L_{\text{modelo}}}{\log L_{\text{nulo}}}$$
+
+donde $\log L_{\text{modelo}}$ es la log-verosimilitud del modelo completo (con los predictores ZCR, energía RMS, duración y periodo de pitch) y $\log L_{\text{nulo}}$ la de un modelo que solo incluye el intercepto. Valores más altos de $R^2_{\text{McFadden}}~$ indican que el modelo con predictores mejora de forma apreciable la explicación de los datos frente al modelo nulo, mientras que valores cercanos a cero sugieren que las variables empleadas apenas añaden capacidad discriminativa entre acentos.
+
+```{r, include=FALSE}
+logL_modelo <- logLik(mod_acento)
+
+mod_nulo <- nnet::multinom(acento ~ 1, data = voces_modif)
+logL_nulo <- logLik(mod_nulo)
+
+r2_mcfadden <- as.numeric(1 - (logL_modelo / logL_nulo)) #Fórmula de McFadden: 1 - (logL_modelo / logL_nulo)
+print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
+```
+
+Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos, los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento español neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
+
+Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
 
 ## Clasificación del origen (IA vs Humano)
 

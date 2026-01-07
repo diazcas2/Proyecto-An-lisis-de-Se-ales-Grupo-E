@@ -310,15 +310,12 @@ cor(pred, voces_modif$gender[-train])
 # ACENTO:
 
 ```{r}
-# Instalar si no lo tienes: install.packages("nnet")
+#install.packages("nnet")
 library(nnet)
 
-# Asegúrate de que 'acento' es un factor
 voces_modif$acento <- as.factor(voces_modif$acento)
 
-# Crear el modelo para predecir ACENTO
-# Usamos ZCR y Energía como sugeriste
-
+#Creamos el modelo para predecir el acento
 mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch, data = voces_modif, maxit=500)
 
 summary(mod_acento)
@@ -327,7 +324,7 @@ summary(mod_acento)
 ```{r}
 library(ggplot2)
 
-# Gráfico para ver cómo varía el ZCR según el acento
+#Hacemos un gráfico para ver cómo varía el ZCR según el acento
 ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
   geom_boxplot() +
   labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") +
