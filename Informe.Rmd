@@ -7,6 +7,9 @@ date: "2026-01-14"
 output:
   pdf_document: default
   html_document: default
+bibliography: referencias.bib
+link-citations: true
+biblio-style: IEEEtran
 ---
 
 ```{r setup, include=FALSE}
@@ -22,6 +25,9 @@ knitr::opts_chunk$set(
 ```{r, include=FALSE}
 library(seewave)
 library(tuneR)
+library(caret)
+library(pROC)
+library(dplyr)
 ```
 
 # OBJETIVOS DEL PROYECTO
@@ -510,6 +516,226 @@ df_carpeta <- function(df, carpeta) {
 voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
 ```
 
+## Construcción del conjunto de datos para detección de IA: MFCC
+
+Para cada archivo de audio se aplicó un preprocesado común con el objetivo de asegurar la comparabilidad entre señales. En concreto, se convirtió cada audio a mono mediante la función `to_mono()`, promediando los canales izquierdo y derecho en caso de que la señal fuese estéreo. Después, se homogeneizó la frecuencia de muestreo a un valor fijo (16 kHz) mediante la función `resample_if_needed()`, ya que el cálculo de MFCC depende directamente de la escala de frecuencias y no es comparable si los audios están a distintas tasas de muestreo.
+
+```{r,include=FALSE}
+
+# calcula un canal mono como el promedio de los canales izquierdo y derecho
+to_mono <- function(w) {
+  
+  if (!is.null(w@stereo) && isTRUE(w@stereo)) {
+    mono <- round((w@left + w@right) / 2)
+    w <- Wave(left = mono, samp.rate = w@samp.rate, bit = w@bit)
+  }
+  w
+}
+
+#Pone todos los audios en la misma frecuencia de muestreo (por defecto, 16 kHz).
+#MFCC depende de la escala de frecuencias. Si un audio está a 48 kHz y otro a 16 kHz, las bandas y la interpretación espectral no son comparables de manera directa.
+resample_if_needed <- function(w, target_sr = 16000) {
+  # Resampleo a frecuencia fija (recomendado para comparabilidad)
+  if (!is.null(target_sr) && w@samp.rate != target_sr) {
+    if (!requireNamespace("seewave", quietly = TRUE)) {
+      stop("Para resamplear instala 'seewave' o pon target_sr=NULL.")
+    }
+    # seewave::resamp espera el vector de señal y los rates
+    x <- seewave::resamp(w@left, f = w@samp.rate, g = target_sr, output = "sample")
+    # reconstruye Wave (manteniendo bit depth)
+    w <- Wave(left = as.integer(round(x)), samp.rate = target_sr, bit = w@bit)
+    #w <- Wave(left = as.integer(x), samp.rate = target_sr, bit = w@bit)
+  }
+  w
+}
+
+```
+
+
+Una vez normalizada la señal, se extrajeron los coeficientes MFCC utilizando una configuración fija de ventanas temporales (duración de ventana y salto constantes) y un número determinado de coeficientes cepstrales, para ello se uso la función `mefcc()` de la librería `tuneR`. Dado que los MFCC se calculan por frames y generan una matriz temporal, se incorporó además información dinámica calculando las derivadas temporales: ($\Delta$) (delta) y ($\Delta\Delta$) (delta-delta), mediante la función `delta_simple()`, capturando así los cambios espectrales a lo largo del tiempo.
+
+```{r,include=FALSE}
+#calcula derivadas temporales (Δ) aproximadas sobre una matriz por frames (MFCC u otra).
+#Por qué es importante: Δ y ΔΔ capturan dinámica temporal (cómo cambian los coeficientes), que suele ayudar en clasificación de voz (incluyendo spoof/deepfake).
+delta_simple <- function(M) {
+  # Delta centrada simple (con división por 2 para aproximar derivada discreta)
+  # Maneja audios muy cortos (pocos frames)
+  n <- nrow(M)
+  if (is.null(n) || n < 2) return(matrix(NA_real_, nrow = n, ncol = ncol(M)))
+  if (n == 2) {
+    d <- rbind(M[2,] - M[1,], M[2,] - M[1,])
+    return(d)
+  }
+  d <- rbind(
+    (M[2, ] - M[1, ]),                          # borde inicial
+    (M[3:n, ] - M[1:(n-2), ]) / 2,              # centrada
+    (M[n, ] - M[n-1, ])                         # borde final
+  )
+  d
+}
+```
+
+
+Para transformar estas matrices (MFCC, ($\Delta$) y ($\Delta\Delta$)) en un conjunto de variables de tamaño fijo por observación, se resumió cada una mediante estadísticas agregadas. En particular, para cada coeficiente se calcularon su media y su desviación estándar a lo largo de todos los frames del audio. Además, se incluyó un control de calidad eliminando valores no finitos (NaN o infinitos) y descartando los audios excesivamente cortos, con el fin de evitar que la extracción de características generase vectores inestables o no representativos.
+
+Para incorporar toda esta información en el conjunto de datos, se utilizó la función `extract_feat_from_wav()`, la cual recibe un archivo de audio, realiza el preprocesado descrito, calcula MFCC, ($\Delta$) y ($\Delta\Delta$), obtiene los estadísticos (medias y desviaciones), asigna la etiqueta correspondiente y devuelve un vector final de características. Así, cada fila del dataframe corresponde a un audio individual, con sus variables MFCC resumidas y su clase asociada (real o IA), además de metadatos como la ruta del archivo y la frecuencia de muestreo final.
+
+```{r,include=FALSE}
+# transformar un archivo de audio en un único vector de features para meter en un dataframe.
+extract_feat_from_wav <- function(
+  file,
+  label = NA_character_,
+  target_sr = 16000,
+  wintime = 0.025,
+  hoptime = 0.010,
+  numcep  = 12,
+  nbands  = 40,
+  preemph = 0.97,
+  dither  = FALSE,
+  frames_min = 5
+) {
+  # Lee WAV, calcula MFCC + Δ + ΔΔ y devuelve un vector nombrado (1 fila)
+  w <- tryCatch(readWave(file), error = function(e) NULL)
+  if (is.null(w)) return(NULL)
+
+  w <- to_mono(w)
+  w <- resample_if_needed(w, target_sr = target_sr)
+
+  # melfcc() puede variar según instalación; asumimos como en tu código.
+  mfcc <- tryCatch(
+    melfcc(
+      samples = w,
+      wintime = wintime,
+      hoptime = hoptime,
+      numcep  = numcep,
+      nbands  = nbands,
+      preemph = preemph,
+      dither  = dither
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(mfcc)) return(NULL)
+
+  # Evitar clips demasiado cortos
+  if (nrow(mfcc) < frames_min) return(NULL)
+  
+  
+  # Limpieza de no-finitos (Inf/-Inf/NaN) que contaminan colMeans/sd
+  mfcc[!is.finite(mfcc)] <- NA_real_
+
+  # Si queda “demasiado roto”, descarta el audio
+  if (all(is.na(mfcc))) return(NULL)
+
+  d1 <- delta_simple(mfcc)
+  d1[!is.finite(d1)] <- NA_real_
+
+  d2 <- delta_simple(d1)
+  d2[!is.finite(d2)] <- NA_real_
+
+  sd_na <- function(x) sd(x, na.rm = TRUE)
+
+  # Estadísticos (1 vector por audio)
+  feat <- c(
+    colMeans(mfcc, na.rm = TRUE), apply(mfcc, 2, sd_na),
+    colMeans(d1,   na.rm = TRUE), apply(d1,   2, sd_na),
+    colMeans(d2,   na.rm = TRUE), apply(d2,   2, sd_na)
+  )
+  
+  nm <- c(
+    paste0("mfcc_mean_", seq_len(numcep)),
+    paste0("mfcc_sd_",   seq_len(numcep)),
+    paste0("d1_mean_",   seq_len(numcep)),
+    paste0("d1_sd_",     seq_len(numcep)),
+    paste0("d2_mean_",   seq_len(numcep)),
+    paste0("d2_sd_",     seq_len(numcep))
+  )
+  names(feat) <- nm
+
+  # Añadimos metadatos
+  c(file = normalizePath(file, winslash = "/", mustWork = FALSE),
+    label = label,
+    sr = as.character(w@samp.rate),
+    feat)
+  
+}
+
+# Recorre carpetas de audios, extrae feat por archivo y devuelve un data.frame final.
+build_feat_dataframe <- function(
+  real_dir,
+  ia_dir,
+  pattern = "\\.(wav|WAV)$",
+  recursive = TRUE,
+  target_sr = 16000,
+  ...
+) {
+  real_files <- list.files(real_dir, pattern = pattern, full.names = TRUE, recursive = recursive)
+  ia_files   <- list.files(ia_dir,   pattern = pattern, full.names = TRUE, recursive = recursive)
+
+  files <- c(real_files, ia_files)
+  labels <- c(rep("real", length(real_files)), rep("ia", length(ia_files)))
+
+  rows <- vector("list", length(files))
+  for (i in seq_along(files)) {
+    rows[[i]] <- extract_feat_from_wav(
+      file = files[i],
+      label = labels[i],
+      target_sr = target_sr,
+      ...
+    )
+  }
+
+  # Quitar fallos / audios demasiado cortos
+  rows <- rows[!vapply(rows, is.null, logical(1))]
+  if (length(rows) == 0) {
+    return(data.frame())
+  }
+
+  # Pasar a data.frame (todo como character/numeric según corresponda)
+  df <- as.data.frame(do.call(rbind, lapply(rows, function(x) {
+    # Convertimos a lista para que data.frame no convierta nombres raros
+    as.list(x)
+  })), stringsAsFactors = FALSE)
+
+  # Convertir columnas numéricas (excepto file/label)
+  num_cols <- setdiff(names(df), c("file", "label"))
+  df[num_cols] <- lapply(df[num_cols], function(v) suppressWarnings(as.numeric(v)))
+
+  # Reordenar
+  df <- df[, c("file", "label", "sr", setdiff(names(df), c("file", "label", "sr")))]
+  df
+}
+
+```
+
+
+Para automatizar la creación del dataframe completo, se implementó la función `build_feat_dataframe()`, que recorre todos los archivos .wav de las carpetas real y fake, aplica `extract_feat_from_wav()` a cada uno y une los resultados en un único dataframe.
+
+```{r,include=FALSE, eval=FALSE}
+df <- build_feat_dataframe(
+  real_dir = "for-norm/training/real",
+  ia_dir   = "for-norm/training/fake",
+  target_sr = 16000,
+  dither = FALSE
+)
+
+# Se arregla el dataframe
+set.seed(123)
+
+# 1) Target como factor
+df <- df %>%
+  mutate(label = factor(label, levels = c("real","ia")))
+
+# 2) Eliminar columnas no predictoras
+drop_cols <- intersect(names(df), c("file","sr"))
+df_ml <- df %>% select(-all_of(drop_cols))
+
+# 3) Quitar filas con NA/Inf (mejor que imputar de inicio)
+is_bad <- function(x) is.na(x) | is.infinite(x)
+bad_rows <- apply(df_ml %>% select(-label), 1, function(r) any(is_bad(r)))
+train_df <- df_ml[!bad_rows, ]
+```
+
+
 
 # ANÁLISIS EXPLORATORIO
 
@@ -621,4 +847,96 @@ Aunque los resultados muestran que estas características contienen información
 
 ## Clasificación del origen (IA vs Humano)
 
+Para tratar este problema de clasificación, se probaron diferentes datasets y dataframes, con los que se entrenó un modelo *SVM con kernel RBF*.
 
+Se eligió entrenar un *SVM con kernel RBF* porque es un modelo especialmente adecuado para el tipo de datos que hemos usado.
+
+En nuestro caso, cada audio no se mantiene como una secuencia temporal completa, sino que se transforma en un vector fijo de características: medias y desviaciones estándar de los MFCC y de sus derivadas ($\Delta$) y ($\Delta\Delta$). Esto convierte el problema en un dataset tabular (una fila por audio y un número moderado de variables, en torno a 72 predictores), similar a un problema clásico de clasificación con variables numéricas.
+
+Con este tipo de variables, es razonable esperar que la separación entre audios reales y audios generados por IA no sea perfectamente lineal. Es decir, las dos clases pueden mezclarse en el espacio de características y necesitar una frontera de decisión más flexible que una simple recta o plano.
+
+Por este motivo se utiliza un SVM con kernel RBF, ya que este modelo:
+
+- Puede capturar relaciones no lineales entre las variables.
+- Suele funcionar muy bien cuando hay un número medio de características (ni muy pocas ni miles)
+- Es un baseline clásico y robusto en tareas de voz y audio cuando se trabaja con MFCC y estadísticas agregadas. [@temko2006classification]
+
+### Proceso de entrenamiento
+
+Para entrenar el clasificador se definió un procedimiento de validación y ajuste de hiperparámetros que permite estimar el rendimiento de forma robusta y reducir el riesgo de sobreajuste. 
+
+En primer lugar, se estableció un esquema de validación mediante la función trainControl(). En este caso se utilizó validación cruzada repetida (repeated cross-validation), dividiendo el conjunto de entrenamiento en 5 particiones (5 folds), de forma que en cada iteración se entrena el modelo con 4 folds y se valida con el fold restante. Además, el proceso completo se repite repeats = 2 veces. 
+`
+Una vez fijado el esquema de validación, se entrenó el modelo mediante la función `train()` (method="svmRadial") del paquete `caret`, obteniendo el modelo entrenado: `svm_fit`.
+
+```{r, include=FALSE,eval=FALSE}
+
+#Definición del esquema de validación
+ctrl <- trainControl(
+  method = "repeatedcv", #se usa validación cruzada repetida.
+  number = 5, #hace 5 folds (5 particiones).
+  repeats = 2, #repite el proceso completo de 5 folds 2 veces.
+  classProbs = TRUE, #calcula probabilidades de clase (necesario para métricas como ROC)
+  summaryFunction = twoClassSummary, #calcula métricas típicas de clasificación binaria (principalmente ROC/AUC)
+  savePredictions = "final", #guarda las predicciones del mejor modelo
+)
+
+#Entrenamiento del SVM con tuning y preprocesado
+svm_fit <- train(
+  label ~ ., #fórmula de modelado: label es la variable objetivo y . ->“usar las demás columnas como predictores”.
+  data = train_df, #dataset de entrenamiento.
+  method = "svmRadial", #entrena un SVM con kernel radial (RBF)
+  metric = "ROC", #elige la mejor configuración de hiperparámetros maximizando AUC-ROC.
+  trControl = ctrl, #aplica el control de CV definido arriba.
+  preProcess = c("center","scale"), #estandariza los predictores.
+  tuneLength = 10 #prueba automáticamente una “rejilla”.
+)
+
+svm_fit
+```
+
+En total se entrenaron 2 modelos, con 2 datasets diferentes: un dataset extraido de internet y otro dataset formado por audios nuestros y generados con IA por nosotros.
+
+### Proceso de testeo
+
+Para evaluar el rendimiento del modelo una vez entrenado, en primer lugar, se generaron las predicciones del modelo sobre el conjunto de test mediante la función `predict()`. Por un lado, se solicitaron las probabilidades por clase, extrayendo concretamente la probabilidad asociada a la clase “ia” y por otro lado, se obtuvo también la predicción final de clase.
+
+Además, se calcularon métricas de clasificación a partir de estas predicciones. En primer lugar, se utilizó `confusionMatrix()` para construir la matriz de confusión comparando las clases predichas y se evaluó el modelo desde un punto de vista probabilístico mediante la curva ROC, empleando la función `roc()` del paquete `pROC`.
+
+```{r,include=FALSE,eval=FALSE}
+# 3) Predicción
+p <- predict(svm_feat_internet, newdata = df_test_internet_ml, type = "prob")[, "ia"]
+pred <- predict(svm_feat_internet, newdata = df_test_internet_ml, type = "raw")
+
+# 4) Métricas
+confusionMatrix(pred, df_test_internet_ml$label)
+
+roc_obj <- roc(response = df_test_internet_ml$label, predictor = p, levels = c("real","ia"))
+auc(roc_obj)
+plot(roc_obj)
+
+# 5) Guardar resultados por archivo
+results <- data.frame(
+  file = df_test_internet_ok$file,
+  label = df_test_internet_ok$label,
+  prob_ia = p,
+  pred = pred,
+  stringsAsFactors = FALSE
+)
+```
+
+Se realizó el testeo sobre datos del dataset extraido de internet y sobre datos extraidos del dataset creado por nosotros.
+
+### Resultados
+
+Se evaluó el rendimiento del sistema bajo tres configuraciones experimentales, combinando distintos conjuntos de entrenamiento y test con el objetivo de analizar tanto el desempeño en condiciones controladas como su capacidad de generalización:
+
+1. Entrenamiento con el dataset de Internet y test con el dataset de Internet, para medir el rendimiento del modelo en el mismo dominio de datos con el que ha sido entrenado.
+
+2. Entrenamiento con el dataset de Internet y test con nuestro dataset, para evaluar la capacidad de generalización del modelo al aplicarlo sobre audios obtenidos en un entorno distinto (cambio de dominio).
+
+3. Entrenamiento con nuestro dataset y test con nuestro dataset, para estimar el rendimiento del modelo cuando se entrena y evalúa específicamente en el contexto y características de nuestro conjunto de datos.
+
+ (COMPLETAR RESULTADOS)
+
+# REFERENCIAS
