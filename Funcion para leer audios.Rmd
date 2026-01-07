@@ -18,27 +18,19 @@ library(tuneR)
 library(seewave)
 ```
 
-Hago la función para convertir los audios a wav.
+Hago la función para convertir los audios de m4a a wav. Además, hago que guarde los audios ya transformados en una nueva carpeta: Audios_finales_conv
 ```{r}
-# Convierte un archivo .m4a a .wav y lo guarda en la carpeta "Audioswav_prueba"
-# Parámetros:
-#  - input_m4a: ruta del archivo .m4a de entrada
-#  - sample_rate: frecuencia de muestreo del audio de salida (Hz)
-
 convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
-  # Crear carpeta de salida si no existe
+  #creo la carpeta de salida en caso que no exista aun
   dir.create("Audios_finales_conv", showWarnings = FALSE)
   
-  # Nombre del archivo sin extensión
-  base_name <- tools::file_path_sans_ext(basename(input_m4a))
+  base_name <- tools::file_path_sans_ext(basename(input_m4a)) #nombre archivo
   
-  # Ruta de salida dentro de Audioswav_prueba
   output_wav <- file.path("Audios_finales_conv", paste0(base_name, ".wav"))
   
-  # OJO: llamada por posición, sin "input =" ni "output ="
   av_audio_convert(
-    input_m4a,        # archivo de entrada
-    output_wav,       # archivo de salida
+    input_m4a,        #archivo de entrada
+    output_wav,       #archivo de salida
     channels    = 1,
     sample_rate = sample_rate
   )
@@ -46,23 +38,19 @@ convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
   return(output_wav)
 }
 
-# Carpeta raíz donde están los audios
+#Carpeta donde están los audios
 input_dir <- "Audios_finales_orig"
 
-# Lista de TODOS los .m4a dentro de la carpeta y subcarpetas
 m4a_files <- list.files(
   path       = input_dir,
   pattern    = "\\.m4a$",
-  recursive  = TRUE,     # <-- incluye subcarpetas (como "Voz IA")
+  recursive  = TRUE,     
   full.names = TRUE
 )
 
-# Convertir todos a wav dentro de "Audioswav"
 rutas_wav <- sapply(m4a_files, convertir_m4a_a_wave)
 
-rutas_wav  # aquí tienes las rutas de los wav generados
-
-#IMPORTANTE: LOS AUDIOS IA NO LOS COGE PORQUE YA ESTAN EN WAV: Podriamos simplemente copiarlos y pegarlos en la carpeta final donde estaran los audios. 
+#IMPORTANTE: LOS AUDIOS IA NO LOS COGE PORQUE YA ESTAN EN WAV. 
 ```
 
 Hago una prueba de que guarda bien los audios.
