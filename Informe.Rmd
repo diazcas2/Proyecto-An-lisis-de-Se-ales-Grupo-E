@@ -837,7 +837,38 @@ En conjunto, estos resultados refuerzan que el pitch es el descriptor más relev
 ## Clasificación del acento
 
 Además de la clasificación por sexo, se intentó abordar la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. 
-Para esta tarea se planteó el problema como una clasificación multiclase, por lo que realizamos un modelo de regresión logística multinomial, utilizando como variables predictoras descriptores acústicos de bajo nivel, concretamente la tasa de cruces por cero (ZCR), la energía RMS, la duración del audio y el pitch period. Estas características se seleccionaron por su relación con aspectos articulatorios y prosódicos que pueden variar entre acentos.
+
+Comenzamos haciendo un estudio de las características acústicas para ver si alguna podía, por sí sola, ayudar a distinguir entre acentos. Nos centramos en analizaren detalle la tasa de cruces por cero (ZCR) dado que esta es especialmente interesante porque está muy relacionada con el contenido de altas frecuencias y con la presencia de consonantes fricativas o sonidos sin sonoridad, que pueden variar entre acentos, por ejemplo, por mayor aspiración de ciertas consonantes, articulación más “suave” o más “marcada”, etc.
+
+Por eso se representó la distribución del ZCR por acento mediante un diagrama de cajas. 
+En el gráfico se observa que:
+
+Las tres categorías (AN: andaluz, AR: argentino, N: neutro) presentan rangos de ZCR parcialmente solapados, lo que ya sugiere que no hay una separación clara solo con esta característica.
+
+El acento neutro (N) muestra una mediana de ZCR ligeramente más alta y una dispersión mayor, mientras que AN y AR parecen algo más compactos y con medianas algo inferiores.
+
+Existen algunos outliers en AR y N (valores de ZCR más altos), que podrían corresponder a audios concretos con más ruido, más fricación o peor calidad de grabación.
+
+En conjunto, el boxplot indica que el ZCR contiene cierta información sobre el acento (las distribuciones no son idénticas), pero la superposición tan grande entre cajas apunta a que ZCR por sí solo no es suficiente para discriminar con fiabilidad los acentos. Esto justifica la combinación de ZCR con otras características en un modelo multinomial.
+
+```{r, include=FALSE}
+library(ggplot2)
+
+ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
+  geom_boxplot() +
+  labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") +
+  theme_minimal()
+```
+
+Para esta tarea se planteó el problema como una clasificación multiclase, por lo que realizamos un modelo de regresión logística multinomial, utilizando como variables predictoras descriptores acústicos de bajo nivel, concretamente la tasa de cruces por cero (ZCR), la energía RMS, la duración del audio y el pitch period. Estas características se seleccionaron por su relación con aspectos articulatorios y prosódicos que pueden variar entre acentos, los cuales se detallan a continuación:
+
+La energía RMS resume la intensidad media de la señal y puede reflejar diferencias en el patrón de acentuación o en la “fuerza” con la que se articula.
+
+La duración del audio captura diferencias en el tempo o velocidad de habla, ya que algunos acentos tienden a ser más rápidos o más pausados.
+
+El period pitch, inversamente relacionado con la frecuencia fundamental, recoge variaciones en la entonación y altura de la voz, otro rasgo típicamente distintivo entre acentos.
+
+Estas variables, junto con el ZCR, permiten modelar tanto aspectos segmentales (contenido en altas frecuencias, presencia de fricativas, etc.) como patrones suprasegmentales (ritmo, intensidad e entonación), que son precisamente los elementos en los que suelen diferir los acentos. Por ello se integraron conjuntamente en el modelo de regresión logística multinomial.
 
 ```{r, include=FALSE}
 #install.packages("nnet")
@@ -850,18 +881,8 @@ mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch, dat
 summary(mod_acento)
 ```
 
-Con el fin de explorar la separabilidad entre clases, se realizó un análisis gráfico de la distribución del ZCR en función del acento, observándose diferencias apreciables entre algunas categorías. 
-
-```{r, include=FALSE}
-library(ggplot2)
-
-ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
-  geom_boxplot() +
-  labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") +
-  theme_minimal()
-```
-
-Posteriormente, se ajustó el modelo multinomial y se evaluó su capacidad explicativa mediante el pseudo-$R^2$ de McFaddenEn modelos de regresión logística (incluida la regresión multinomial) el $R^2$ clásico de regresión lineal no es adecuado, porque no existe una descomposición de la varianza análoga, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, y se define como
+Por último, se ajustó el modelo multinomial y se evaluó su capacidad explicativa mediante el pseudo-$R^2$ de McFadden.
+En modelos de regresión logística (incluida la regresión multinomial) el $R^2$ clásico de regresión lineal no es adecuado, porque no existe una descomposición de la varianza análoga, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, y se define como
 
 $$R^2_{\text{McFadden}} \;=\; 1 - \frac{\log L_{\text{modelo}}}{\log L_{\text{nulo}}}$$
 
