@@ -57,11 +57,39 @@ De manera más específica, los objetivos del trabajo son los siguientes:
 
 Como primer paso del preprocesado, se desarrolló una función para la conversión de archivos de audio desde el formato \texttt{.m4a} al formato \texttt{.wav}, con el objetivo de unificar el tipo de señal y facilitar su posterior análisis. Para ello, se emplearon las librerías \texttt{av} y \texttt{tuneR} de \textsf{R}, que permiten la conversión y lectura de señales de audio de forma eficiente.
 
-```{r}
+La función implementada convierte cada archivo a una señal monofónica con una frecuencia de muestreo de 16 kHz y guarda los archivos resultantes en un directorio específico. Además, se automatizó el proceso para convertir de manera recursiva todos los archivos \texttt{.m4a} contenidos en una carpeta y sus subdirectorios. Los audios generados mediante voz sintética (Voz IA) no se incluyen en este proceso, ya que se encuentran originalmente en formato `.wav` y no requieren conversión adicional.
 
+```{r, include=FALSE}
+convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
+ 
+  dir.create("Audios_finales_conv", showWarnings = FALSE)  #creo la carpeta de salida
+  
+  base_name <- tools::file_path_sans_ext(basename(input_m4a)) #nombre archivo
+  
+  output_wav <- file.path("Audios_finales_conv", paste0(base_name, ".wav"))
+  
+  av_audio_convert(
+    input_m4a,        #archivo de entrada
+    output_wav,       #archivo de salida
+    channels    = 1,
+    sample_rate = sample_rate
+  )
+  
+  return(output_wav)
+}
+
+#Carpeta donde están los audios
+input_dir <- "Audios_finales_orig"
+
+m4a_files <- list.files(
+  path       = input_dir,
+  pattern    = "\\.m4a$",
+  recursive  = TRUE,     
+  full.names = TRUE
+)
+
+rutas_wav <- sapply(m4a_files, convertir_m4a_a_wave)
 ```
-
-La función implementada convierte cada archivo a una señal monofónica con una frecuencia de muestreo de 16 kHz y guarda los archivos resultantes en un directorio específico. Además, se automatizó el proceso para convertir de manera recursiva todos los archivos \texttt{.m4a} contenidos en una carpeta y sus subdirectorios.
 
 ### Detección y eliminación de ruido y silencios
 
