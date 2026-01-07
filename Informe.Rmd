@@ -836,13 +836,12 @@ En conjunto, estos resultados refuerzan que el pitch es el descriptor más relev
 
 ## Clasificación del acento
 
-Además de la clasificación por sexo, se abordó la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. Para esta tarea se empleó un modelo de regresión logística multinomial, adecuado para problemas de clasificación con más de dos clases.
-
-Como variables predictoras se utilizaron descriptores acústicos de bajo nivel, concretamente la tasa de cruces por cero (ZCR), la energía RMS y la duración del audio. Estas características se seleccionaron por su relación con aspectos articulatorios y prosódicos que pueden variar entre acentos.
+Además de la clasificación por sexo, se intentó abordar la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. 
+Para esta tarea se planteó el problema como una clasificación multiclase, por lo que realizamos un modelo de regresión logística multinomial, utilizando como variables predictoras descriptores acústicos de bajo nivel, concretamente la tasa de cruces por cero (ZCR), la energía RMS, la duración del audio y el pitch period. Estas características se seleccionaron por su relación con aspectos articulatorios y prosódicos que pueden variar entre acentos.
 
 Con el fin de explorar la separabilidad entre clases, se realizó un análisis gráfico de la distribución del ZCR en función del acento, observándose diferencias apreciables entre algunas categorías. Posteriormente, se ajustó el modelo multinomial y se evaluó su capacidad explicativa mediante el pseudo-$R^2$ de McFadden, comparando la verosimilitud del modelo completo con la de un modelo nulo.
 
-Aunque los resultados muestran que estas características contienen información relevante para la clasificación del acento, el rendimiento del modelo está condicionado por el tamaño reducido del conjunto de datos, por lo que se considera necesario ampliar el número de muestras para obtener conclusiones más robustas.
+Aunque el modelo consigue ajustar los datos disponibles, los resultados no pueden considerarse fiables: el número de muestras por acento no es equitativo dado que en el grupo hay 3 personas que graban audios con acentro español neutro (2 hombres y una mujer), 2 personas que graban audios con acento andaluz (hombre y mujer), y una sola persona con acento argentino (mujer). Es por tanto que la variabilidad interna de cada clase es mínima (varios audios de las mismas voces) y la evaluación se realiza sobre los mismos registros usados para el entrenamiento. En la práctica, el modelo tiende a aprender rasgos de cada locutor concreto más que del acento en sí. Por este motivo, este análisis se interpreta únicamente como una prueba de concepto del flujo de trabajo (extracción de características, ajuste y evaluación de un modelo multinomial), y se concluye que sería necesario un conjunto de datos mucho más amplio, equilibrado y diverso para poder abordar de forma realista la clasificación automática del acento.
 
 
 ## Clasificación del origen (IA vs Humano)
