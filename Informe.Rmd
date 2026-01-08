@@ -70,11 +70,10 @@ La función implementada convierte cada archivo a una señal monofónica con una
 
 ```{r,eval=FALSE}
 convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
- 
-  dir.create("Audios_finales_conv", showWarnings = FALSE)  #creo la carpeta de salida
-  
-  base_name <- tools::file_path_sans_ext(basename(input_m4a)) #nombre archivo
-  
+ #Creamos la carpeta donde guardaremos los audios.
+  dir.create("Audios_finales_conv", showWarnings = FALSE) 
+  #Le damos nombre al archivo
+  base_name <- tools::file_path_sans_ext(basename(input_m4a)) 
   output_wav <- file.path("Audios_finales_conv", paste0(base_name, ".wav"))
   
   av_audio_convert(
@@ -87,7 +86,7 @@ convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
   return(output_wav)
 }
 
-#Carpeta donde están los audios
+#Carpeta donde están los audios originalmente
 input_dir <- "Audios_finales_orig"
 
 m4a_files <- list.files(
@@ -102,7 +101,7 @@ rutas_wav <- sapply(m4a_files, convertir_m4a_a_wave)
 
 ### Detección y eliminación de ruido y silencios
 
-Con el objetivo de mejorar la calidad de la base de datos y eliminar segmentos de audio que no aporten información, se implementó un algoritmo para discriminar entre fragmentos correspondientes al habla y aquellos correspondientes a ruidos o silencios, eliminando estos últimos a partir de un análisis de la _Short Time Energy_ (STE) y el _Zero Crossing Rate_ (ZCR). Este procedimiento genera nuevos archivos de audio que contienen únicamente la información acústica relevante.
+Con el objetivo de mejorar la calidad de la base de datos y eliminar segmentos de audio que no aporten información, se implementó un algoritmo para discriminar entre fragmentos correspondientes al habla y segmentos de ruido o silencio, eliminando estos últimos a partir de un análisis de la _Short Time Energy_ (STE) y el _Zero Crossing Rate_ (ZCR). Este procedimiento genera nuevos archivos de audio que contienen únicamente la información acústica relevante.
 
 El procesamiento se realizó mediante la creación de ventanas temporales, dividiendo la señal de entrada en tramos de $20$ ms con un solapamiento del $50\%$ entre ventanas consecutivas. Estos parámetros se seleccionaron para garantizar la cuasi-estacionariedad de la señal de voz, permitiendo un análisis espectral y temporal preciso sin perder continuidad en los bordes de cada tramo.
 
@@ -303,7 +302,7 @@ El period pitch se estimó mediante un método basado en la autocorrelación de 
 
 De acuerdo con la literatura consultada, los valores típicos de frecuencia fundamental en voz humana se sitúan aproximadamente en el rango comprendido entre 85 y 260 Hz, presentando diferencias claras entre hombres y mujeres ([@rabiner1978digital] y [@basu2020pitch]). 
 
-A partir de estos rangos reportados, se definieron umbrales prácticos para la clasificación del sexo. Con el fin de evitar clasificaciones forzadas en las zonas de solapamiento entre ambos grupos, se estableció una región intermedia de indeterminación. De este modo, se consideraron voces masculinas aquellas con frecuencias fundamentales inferiores a 170 Hz, y voces femeninas aquellas con valores superiores a 180Hz.
+A partir de estos rangos reportados, se definieron umbrales prácticos para la clasificación del sexo. Con el fin de evitar clasificaciones forzadas en las zonas de solapamiento entre ambos grupos, se estableció una región intermedia de indeterminación. De este modo, se consideraron voces masculinas aquellas con frecuencias fundamentales inferiores a 170 Hz, voces femeninas aquellas con valores superiores a 180Hz y como indeterminadas aquellas comprendidas entre ambos umbrales.
 
 Para calcular el pitch creamos la función `period_pitch` y, con el fin de garantizar la fiabilidad de la estimación, se incorporan una serie de comprobaciones previas sobre la señal de entrada. En primer lugar, se verifica que el audio contenga un número suficiente de muestras, ya que señales excesivamente cortas no permiten identificar una periodicidad clara. Asimismo, la búsqueda del período fundamental se restringe a un rango de retardos coherente con los valores esperados de frecuencia fundamental en voz humana, evitando así detecciones erróneas asociadas a componentes no relevantes de la señal. En aquellos casos en los que la longitud efectiva de la señal no permite cubrir dicho rango de retardos, el cálculo del pitch se considera no válido. 
 
@@ -370,7 +369,9 @@ Para adaptar esta representación por tramas a modelos clásicos de aprendizaje 
 
 #### Centroide espectral global
 
-Con el objetivo de caracterizar el contenido espectral de las señales de voz, se implementó una función para el cálculo del centroide espectral global de cada audio. Este descriptor se define como la frecuencia media ponderada por la energía del espectro y proporciona una medida resumen de la distribución espectral de la señal. Previamente al cálculo, se elimina el componente de continua de la señal con el fin de evitar un sesgo hacia bajas frecuencias. El centroide se obtiene a partir del espectro de potencia calculado mediante la transformada rápida de Fourier, considerando únicamente las componentes de frecuencia positivas. De este modo, cada señal queda representada por un único valor que resume su contenido espectral global.
+Con el objetivo de caracterizar la distribución de la energía en el dominio de la frecuencia, se calculó el centroide espectral global de cada señal de voz. Este descriptor puede interpretarse como el “centro de gravedad” del espectro, ya que corresponde a la media de las frecuencias ponderada por su energía, de modo que valores más elevados indican una mayor concentración de energía en frecuencias altas. Previamente a su cálculo, se eliminó el valor medio de la señal, correspondiente a la componente de continua, ya que su presencia introduce un componente espectral en 0 Hz que no aporta información acústica relevante y puede sesgar artificialmente el centroide hacia bajas frecuencias.
+
+De esta forma, el centroide se obtiene a partir del espectro de potencia calculado mediante la transformada rápida de Fourier, considerando únicamente las componentes de frecuencia positivas. De este modo, cada señal queda representada por un único valor que resume su contenido espectral global.
 
 ```{r, echo=FALSE}
 spectral_centroid <- function(w) {
@@ -491,7 +492,7 @@ etiquetar_por_nombre <- function(nombre_archivo, reglas) {
 ```
 
 
-A continuación, para cada audio se incluyeron las siguientes variables: duración, zcr, energía rms y pitch. Para ello se utilizó la función `añadir_voz()` la cuál recibe un archivo de audio, extrae sus características, asigna las etiquetas usando la función anterior y añade toda la información como una nueva fila al dataframe. Así, cada fila del dataframe corresponde a un audio individual, con sus características numéricas y etiquetas.
+A continuación, para cada audio se incluyeron las siguientes variables: duración, zcr, energía rms, pitch, centroide y centroide en 12 tramos. Para ello se utilizó la función `añadir_voz()` la cuál recibe un archivo de audio, extrae sus características, asigna las etiquetas usando la función anterior y añade toda la información como una nueva fila al dataframe. Así, cada fila del dataframe corresponde a un audio individual, con sus características numéricas y etiquetas.
 
 ```{r, include=FALSE}
 voces_df <- data.frame(
@@ -567,8 +568,6 @@ añadir_voz <- function(df, ruta_wav) {
 
 Cabe destacar que todas las características consideradas en el conjunto de datos están definidas como medias o medidas normalizadas respecto a la longitud de la señal, de modo que no dependen de la duración total del audio. En consecuencia, el proceso de eliminación de silencios únicamente reduce las regiones no informativas de la señal, sin afectar a la coherencia ni a la comparabilidad de las características extraídas entre distintos audios.
 
-
-
 Para automatizar la creación del dataframe, se implementó la función `df_carpeta()`, que recorre todos los archivos de la carpeta con los audios limpios y aplica `añadir_voz()` a cada uno. De forma que, se obtiene un  dataframe completo, voces_df, con toda la información lista para análisis y clasificación.
 
 ```{r, include=FALSE}
@@ -610,6 +609,7 @@ to_mono <- function(w) {
 
 #Pone todos los audios en la misma frecuencia de muestreo (por defecto, 16 kHz).
 #MFCC depende de la escala de frecuencias. Si un audio está a 48 kHz y otro a 16 kHz, las bandas y la interpretación espectral no son comparables de manera directa.
+
 resample_if_needed <- function(w, target_sr = 16000) {
   # Resampleo a frecuencia fija (recomendado para comparabilidad)
   if (!is.null(target_sr) && w@samp.rate != target_sr) {
@@ -632,7 +632,9 @@ Una vez normalizada la señal, se extrajeron los coeficientes MFCC utilizando un
 
 ```{r,include=FALSE}
 #calcula derivadas temporales (Δ) aproximadas sobre una matriz por frames (MFCC u otra).
-#Por qué es importante: Δ y ΔΔ capturan dinámica temporal (cómo cambian los coeficientes), que suele ayudar en clasificación de voz (incluyendo spoof/deepfake).
+
+#¿Por qué es importante?: Δ y ΔΔ capturan dinámica temporal (cómo cambian los coeficientes), que suele ayudar en clasificación de voz (incluyendo spoof/deepfake).
+
 delta_simple <- function(M) {
   # Delta centrada simple (con división por 2 para aproximar derivada discreta)
   # Maneja audios muy cortos (pocos frames)
@@ -657,7 +659,7 @@ Para transformar estas matrices (MFCC, ($\Delta$) y ($\Delta\Delta$)) en un conj
 Para incorporar toda esta información en el conjunto de datos, se utilizó la función `extract_feat_from_wav()`, la cual recibe un archivo de audio, realiza el preprocesado descrito, calcula MFCC, ($\Delta$) y ($\Delta\Delta$), obtiene los estadísticos (medias y desviaciones), asigna la etiqueta correspondiente y devuelve un vector final de características. Así, cada fila del dataframe corresponde a un audio individual, con sus variables MFCC resumidas y su clase asociada (real o IA), además de metadatos como la ruta del archivo y la frecuencia de muestreo final.
 
 ```{r,include=FALSE}
-# transformar un archivo de audio en un único vector de features para meter en un dataframe.
+# Transformar un archivo de audio en un único vector de features para meter en un dataframe.
 extract_feat_from_wav <- function(
   file,
   label = NA_character_,
@@ -670,6 +672,7 @@ extract_feat_from_wav <- function(
   dither  = FALSE,
   frames_min = 5
 ) {
+  
   # Lee WAV, calcula MFCC + Δ + ΔΔ y devuelve un vector nombrado (1 fila)
   w <- tryCatch(readWave(file), error = function(e) NULL)
   if (is.null(w)) return(NULL)
@@ -694,7 +697,6 @@ extract_feat_from_wav <- function(
 
   # Evitar clips demasiado cortos
   if (nrow(mfcc) < frames_min) return(NULL)
-  
   
   # Limpieza de no-finitos (Inf/-Inf/NaN) que contaminan colMeans/sd
   mfcc[!is.finite(mfcc)] <- NA_real_
@@ -784,7 +786,7 @@ build_feat_dataframe <- function(
 ```
 
 
-Para automatizar la creación del dataframe completo, se implementó la función `build_feat_dataframe()`, que recorre todos los archivos .wav de las carpetas real y fake, aplica `extract_feat_from_wav()` a cada uno y une los resultados en un único dataframe.
+Para automatizar la creación del dataframe completo, se implementó la función `build_feat_dataframe()`, que recorre todos los archivos _.wav_ de las carpetas real y fake, aplica `extract_feat_from_wav()` a cada uno y une los resultados en un único dataframe.
 
 ```{r,include=FALSE, eval=FALSE}
 df <- build_feat_dataframe(
@@ -858,23 +860,50 @@ table(voces_df$sexo)
 Tras hacer un análisis descriptivo usando `summary()`, se puede ver que la duración de los audios después de limpiarlos y eliminar los silencios presenta una variabilidad moderada, con valores comprendidos aproximadamente entre 1.5 y 5 segundos. Por otro lado, las características ZCR y energía RMS presentan rangos consistentes y valores medios estables, indicando señales con contenido sonoro continuo y sin presencia dominante de ruido. 
 
 ```{r, include=FALSE}
-summary(voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")])
+summary(voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch","centroide")])
 ```
 
 En cuanto a la frecuencia fundamental (pitch), se observa un rango amplio de valores (aproximadamente entre 80 y 285 Hz), consistente con voces humanas. El análisis por sexo revela que las voces femeninas presentan valores de pitch más elevados que las masculinas. Si lo representamos usando un diagrama de cajas, podemos ver un solapamiento entre ambas distribuciones, lo que indica que probablemente existan errores de clasificación en algunos audios concretos al emplear únicamente esta característica.
 
 ```{r, echo=FALSE}
+# Aumentamos el margen derecho
+par(mar = c(5, 4, 4, 6))  # c(bottom, left, top, right)
+
+# Boxplot con espacio extra a la derecha
 boxplot(period_pitch ~ sexo,
         data = voces_df,
         main = "Distribución del pitch según el sexo",
         ylab = "Pitch (Hz)",
-        xlab = "Sexo")
+        xlab = "Sexo",
+        border = "black",
+        xlim = c(0.5, 3.5)) 
+
+# Franjas de color
+rect(par("usr")[1], par("usr")[3], par("usr")[2], 170, col = rgb(0,0,1,0.1), border = NA)
+rect(par("usr")[1], 170, par("usr")[2], 180, col = rgb(1,1,0,0.2), border = NA)
+rect(par("usr")[1], 180, par("usr")[2], par("usr")[4], col = rgb(1,0,0,0.1), border = NA)
+
+# Umbrales
+abline(h = 170, lty = 2, lwd = 2)
+abline(h = 180,  lty = 2, lwd = 2)
+
+# Imprimimos fuera del plot
+par(xpd = TRUE)
+legend(x = 3.3, y = max(voces_df$period_pitch),
+       legend = c("Hombre", "Indeterminado", "Mujer"),
+       fill = c(rgb(0,0,1,0.1), rgb(1,1,0,0.2), rgb(1,0,0,0.1)),
+       border = NA,
+       bty = "o",
+       bg = "white")
+
+par(xpd = FALSE)  # restaurar
+
 ```
 
-El análisis de correlación entre las variables numéricas muestra una alta correlación entre la duración y la ZCR, mientras que el pitch presenta una correlación prácticamente nula con el resto de variables. Esto sugiere que el pitch aporta información complementaria y relevante para la tarea de clasificación.
+El análisis de correlación muestra que la duración y la ZCR están fuertemente relacionadas, mientras que el pitch es prácticamente independiente del resto de variables, aportando información complementaria. De manera similar, el centroide espectral muestra baja correlación con las demás características, lo que indica que también contribuye con información adicional útil para la clasificación.
 
 ```{r, echo=FALSE}
-vars_num <- voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")]
+vars_num <- voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch", "centroide")]
 round(cor(vars_num, use = "complete.obs"), 2)
 ```
 
@@ -898,13 +927,14 @@ A partir del conjunto de características extraídas y del análisis exploratori
 
 Para ello, se codificó la variable objetivo \texttt{sexo} en formato numérico, asignando el valor 1 a las voces femeninas y 0 a las masculinas. Esta transformación permite el uso de modelos probabilísticos basados en regresión logística.
 
-Inicialmente, se ajustó un modelo de regresión logística multivariante que incluía todas las características disponibles en el conjunto de datos: duración, tasa de cruces por cero (ZCR), energía RMS, frecuencia fundamental (pitch), así como las variables categóricas de origen y acento. Este primer modelo tiene como objetivo evaluar la contribución conjunta de todas las variables y explorar posibles relaciones entre ellas y la variable respuesta.
+Inicialmente, se ajustó un modelo de regresión logística multivariante que incluía todas las características disponibles en el conjunto de datos: duración, tasa de cruces por cero (ZCR), energía RMS, frecuencia fundamental (pitch), centroide, así como las variables categóricas de origen y acento. Este primer modelo tiene como objetivo evaluar la contribución conjunta de todas las variables y explorar posibles relaciones entre ellas y la variable respuesta.
 
 ```{r, include=FALSE}
 voces_df$gender <- ifelse(voces_df$sexo == "F", 1, 0)
 table(voces_df$gender)
 
-voces_modif<-voces_df[-1]
+voces_modif<-voces_df
+voces_modif<-voces_df[-c(1,2,10)]
 voces_modif$origen <- factor(voces_modif$origen)
 voces_modif$acento <- factor(voces_modif$acento)
 
@@ -915,34 +945,34 @@ summary(mod)
 par(mfrow = c(2,2))
 ```
 
-Al analizar el resumen del modelo de regresión logística completo mediante la función `summary()`, se observó que la única variable estadísticamente significativa para la clasificación del sexo era la frecuencia fundamental (period pitch), mientras que el resto de variables no aportaban evidencia significativa una vez incorporado dicho descriptor. A partir de esta observación, se decidió contrastar un modelo reducido basado exclusivamente en el pitch frente al modelo completo mediante un ANOVA, con el fin de comprobar si la complejidad adicional estaba justificada.
+Al analizar el resumen del modelo usando la función `summary()`, se observó que las únicas variables estadísticamente significativas para la clasificación del sexo eran la frecuencia fundamental (period pitch) y el centroide, mientras que el resto de variables no aportaban evidencia significativa una vez incorporado dicho descriptor. A partir de esta observación, se decidió contrastar un modelo reducido basado exclusivamente en el pitch y centroide frente al modelo completo mediante un ANOVA, con el fin de comprobar si la complejidad adicional estaba justificada.
 
-```{r, echo=FALSE}
-mod_simple <- glm(gender ~ period_pitch, data = voces_modif, family = binomial)
+```{r, include=FALSE}
+mod_simple <- glm(gender ~ period_pitch+centroide, data = voces_modif, family = binomial)
 anova(mod_simple, mod, test = "Chisq")
 ```
-El contraste mediante ANOVA entre el modelo reducido y el modelo completo muestra que incorporar el resto de variables produce una reducción significativa de la devianza (p < 0.001). No obstante, el análisis individual de los coeficientes revela que únicamente el period pitch resulta estadísticamente significativo, mientras que el resto de variables no aportan información relevante de forma independiente.
 
+El contraste mediante ANOVA entre el modelo reducido (period pitch y centroide) y el modelo completo muestra que la incorporación de estas variables produce una reducción significativa de la devianza. No obstante,vimos en el análisis individual de los coeficientes que el pitch y el centroide aportan información estadísticamente significativa de forma independiente, mientras que el resto de variables no contribuyen de manera relevante. Por ello, se optó por utilizar el modelo reducido para la clasificación del sexo, ya que combina descriptores complementarios, fáciles de calcular a partir de la señal de voz y con menor riesgo de sobreajuste, proporcionando una base robusta y generalizable.
 
 A continuación, se evaluó el desempeño del modelo reducido en un esquema de entrenamiento y prueba. Para ello, se seleccionó aleatoriamente un $70\%$ de las observaciones para ajustar el modelo y se reservó el $30\%$ para validación.
 
 ```{r, include=FALSE}
-set.seed(0)
+set.seed(512)
 train <- sample(nrow(voces_modif),0.7 * nrow (voces_modif))
-mod_pred <- glm(gender ~ period_pitch, family = binomial ( link = logit ) , data =voces_modif[ train ,])
+mod_pred <- glm(gender ~ period_pitch+centroide, family = binomial ( link = logit ) , data =voces_modif[ train ,])
 summary ( mod_pred)
 
 (mod_pred$null.deviance - mod_pred$deviance)/mod_pred$null.deviance
 ```
 
-La bondad de ajuste del modelo se reflejó en un pseudo-R² de 0.697, lo que sugiere que aproximadamente el $69.7\%$  de la variabilidad del conjunto de entrenamiento queda explicada por el modelo basado únicamente en el period pitch. Posteriormente, se aplicó el modelo al conjunto de prueba para evaluar su capacidad predictiva.
+La bondad de ajuste del modelo se reflejó en un pseudo-R² de 0.727, lo que sugiere que aproximadamente el $72.7\%$  de la variabilidad del conjunto de entrenamiento queda explicada por el modelo basado únicamente en el period pitch. Posteriormente, se aplicó el modelo al conjunto de prueba para evaluar su capacidad predictiva.
 
 ```{r, include=FALSE}
 pred <- predict(mod_pred, voces_modif[-train,], type = "response")
 cor(pred, voces_modif$gender[-train])
 ```
 
-La correlación entre las probabilidades predichas y las clases reales alcanzó un valor de 0.918, evidenciando una buena concordancia entre las predicciones y las etiquetas de sexo. 
+La correlación entre las probabilidades predichas y las clases reales alcanzó un valor de 0.9014, evidenciando una buena concordancia entre las predicciones y las etiquetas de sexo. 
 
 ```{r, echo=FALSE}
 plot(pred, voces_modif$gender[-train], pch = 20)
@@ -1004,11 +1034,11 @@ svm_fit <- train(
 svm_fit
 ```
 
-En total se entrenaron 2 modelos, con 2 datasets diferentes: un dataset extraido de internet (enlace al dataset: \href{https://bil.eecs.yorku.ca/datasets/}{dataset for-norm}) y otro dataset formado por audios nuestros y generados con IA por nosotros.
+En total se entrenaron 2 modelos, con 2 datasets diferentes: un dataset extraido de internet (enlace al dataset: \href{https://bil.eecs.yorku.ca/datasets/}{dataset for-norm}) y otro dataset formado por nuestros audios y generados con IA.
 
 #### Proceso de testeo
 
-Para evaluar el rendimiento del modelo una vez entrenado, en primer lugar, se generaron las predicciones del modelo sobre el conjunto de test mediante la función `predict()`. Por un lado, se solicitaron las probabilidades por clase, extrayendo concretamente la probabilidad asociada a la clase “ia” y por otro lado, se obtuvo también la predicción final de clase.
+Para evaluar el rendimiento del modelo una vez entrenado, en primer lugar, se generaron las predicciones del modelo sobre el conjunto de test mediante la función `predict()`. Por un lado, se solicitaron las probabilidades por clase, extrayendo concretamente la probabilidad asociada a la clase “IA” y por otro lado, se obtuvo también la predicción final de clase.
 
 Además, se calcularon métricas de clasificación a partir de estas predicciones. En primer lugar, se utilizó `confusionMatrix()` para construir la matriz de confusión comparando las clases predichas y se evaluó el modelo desde un punto de vista probabilístico mediante la curva ROC, empleando la función `roc()` del paquete `pROC`.
 
@@ -1038,7 +1068,7 @@ Se realizó el testeo sobre datos del dataset extraido de internet y sobre datos
 
 #### Centroide espectral
 
-A continuación, se entrenaron dos modelos de clasificación basados en random forest con el objetivo de evaluar la capacidad discriminativa de las características derivadas del centroide espectral. El primer modelo utiliza exclusivamente el centroide espectral global, mientras que el segundo incorpora los centroides espectrales obtenidos mediante segmentación temporal, junto con su desviación típica. En ambos casos, el análisis se realizó de forma independiente para voces masculinas y femeninas, por lo que se obtuvieron matrices de confusión separadas para cada grupo.
+Dado que el centroide espectral mostró diferencias entre voces humanas y generadas por IA, y aunque sus valores aislados no permiten una separación perfecta, resulta interesante evaluar su capacidad discriminativa en conjunto para clasificar el origen de la voz. Para ello, se entrenaron dos modelos de clasificación basados en random forest con el objetivo de evaluar la capacidad discriminativa de las características derivadas del centroide espectral. El primer modelo utiliza exclusivamente el centroide espectral global, mientras que el segundo incorpora los centroides espectrales obtenidos mediante segmentación temporal, junto con su desviación típica. En ambos casos, el análisis se realizó de forma independiente para voces masculinas y femeninas, por lo que se obtuvieron matrices de confusión separadas para cada grupo.
 
 Las matrices de confusión del modelo con el centroide global son las siguientes:
 
@@ -1233,21 +1263,19 @@ Estos resultados son lógicos: al cambiar de dominio suele aparecer una degradac
 
 En esta combinación se obtiene accuracy = 1.0 (sin ningún error) y una ROC perfecta. Este resultado es poco habitual para un escenario realista de detección IA vs humano, y normalmente indica que la clasificación, ha quedado “demasiado fácil” para el modelo.
 
-Esto puede deberse a que el diseño del dataset introduce una estructura muy repetitiva: mismas frases, solo una variedad de 5 personas (por lo que se repiten mucho las mismas voces) y misma cadena de grabación y limpieza, además de realizar el mismo procedimiento de generación IA usando también las mismas frases. Esto puede provocar que el modelo no esté aprendiendo “humanidad vs IA” en un sentido general, sino artefactos muy específicos de nuestro contexto.
+Esto puede deberse a que el diseño del dataset introduce una estructura muy repetitiva: mismas frases, solo una variedad de 6 personas (por lo que se repiten mucho las mismas voces) y misma cadena de grabación y limpieza, además de realizar el mismo procedimiento de generación IA usando también las mismas frases. Esto puede provocar que el modelo no esté aprendiendo “humanidad vs IA” en un sentido general, sino artefactos muy específicos de nuestro contexto.
 
 En conclusión, los resultados obtenidos no son una evidencia sólida de que el modelo generalice a “cualquier” voz humana vs “cualquier” IA, porque el test probablemente comparte demasiada estructura con el entrenamiento.
 
 ### Clasificación del acento
 
-Además de la clasificación por sexo, se intentó abordar la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. 
+Además de la clasificación por sexo, se intentó abordar la identificación del acento de la voz, considerando tres categorías: castellano neutro, andaluz y argentino. 
 
 Comenzamos haciendo un estudio exploratorio de las características acústicas para comprobar si alguna podía, por sí sola, ayudar a distinguir entre acentos. Nos centramos en la tasa de cruces por cero (ZCR) ya que está muy relacionada con el contenido de altas frecuencias y con la presencia de consonantes fricativas o sonidos sordos, que pueden variar entre acentos, ya sea por mayor aspiración, articulación más “suave” o más “marcada”, etc.
 
 Se representó la distribución del ZCR por acento mediante un diagrama de cajas, del cual se observa que:
 
-Las tres categorías (AN: andaluz, AR: argentino, N: neutro) presentan rangos de ZCR parcialmente solapados, lo que indica que no hay una separación clara solo con esta característica.
-
-El acento neutro (N) muestra una mediana de ZCR ligeramente más alta y una dispersión mayor, mientras que AN y AR parecen algo más compactos y con medianas algo inferiores.
+Las tres categorías (AN: andaluz, AR: argentino, N: neutro) presentan rangos de ZCR parcialmente solapados, lo que indica que no hay una separación clara solo con esta característica. Sin embargo, el acento neutro (N) muestra una mediana de ZCR ligeramente más alta y una dispersión mayor, mientras que AN y AR parecen algo más compactos y con medianas algo inferiores.
 
 Existen algunos outliers en AR y N (valores de ZCR más altos), que podrían corresponder a audios concretos con más ruido, más fricación o peor calidad de grabación.
 
@@ -1266,11 +1294,7 @@ ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
 
 Dado lo visto y teniendo en cuenta que se trata de una clasificación multiclase, se planteó un modelo de regresión logística multinomial utilizando como predictores varios descriptores acústicos de bajo nivel: ZCR, la energía RMS, la duración del audio y el pitch period. Estas características se eligieron por su relación con aspectos articulatorios y prosódicos que suelen diferir entre acentos:
 
-La energía RMS resume la intensidad media de la señal y puede reflejar diferencias en el patrón de acentuación o en la “fuerza” con la que se articula.
-
-La duración del audio captura diferencias en el tempo o velocidad de habla, ya que algunos acentos tienden a ser más rápidos o más pausados.
-
-El period pitch, inversamente relacionado con la frecuencia fundamental, recoge variaciones en la entonación y altura de la voz, otro rasgo típicamente distintivo entre acentos.
+La energía RMS resume la intensidad media de la señal y puede reflejar diferencias en el patrón de acentuación o en la “fuerza” con la que se articula. Por otro lado, la duración del audio captura diferencias en el tempo o velocidad de habla, ya que algunos acentos tienden a ser más rápidos o más pausados. Además, el period pitch recoge variaciones en la entonación y altura de la voz, otro rasgo típicamente distintivo entre acentos.
 
 En conjunto, estas variables, permiten modelar tanto aspectos segmentales (contenido en altas frecuencias, presencia de fricativas, etc.) como suprasegmentales (ritmo, intensidad y entonación), que son precisamente los elementos en los que suelen diferir los acentos.
 
@@ -1301,7 +1325,7 @@ r2_mcfadden <- as.numeric(1 - (logL_modelo / logL_nulo)) #Fórmula de McFadden: 
 print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
 ```
 
-Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos, los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento español neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
+Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos, los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento castellano neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
 
 Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
 
