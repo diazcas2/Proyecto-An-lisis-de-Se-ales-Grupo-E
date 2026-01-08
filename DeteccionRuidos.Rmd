@@ -70,7 +70,7 @@ ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
 
 ## Función para detectar ruido
 ```{r}
-noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.05, umbral_ste = 0.02, plot_result = T){
+noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = T){
   datos_ste <- ste_audio(audio, win_time, overlap, plot_result = F)
   datos_zcr <- zcr_audio(audio, win_time, overlap, plot_result = F)
   
@@ -86,7 +86,7 @@ noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.05,
   # Criterio 1: baja energía = silencio o ruido de fondo
   df_final$es_ruido[df_final$ste < umbral_ste] <- TRUE
   
-  # Criterio 2 (opcional): alta ZCR con energía media-baja suele ser ruido de viento o siseo
+  # Criterio 2 (opcional): alta ZCR con energía baja suele ser ruido de viento o siseo
   #df_final$es_ruido[df_final$zcr > umbral_zcr & df_final$ste < 0.2] <- TRUE
   
   df_final$etiqueta <- ifelse(df_final$es_ruido, "Ruido/Silencio", "Voz/Señal")
