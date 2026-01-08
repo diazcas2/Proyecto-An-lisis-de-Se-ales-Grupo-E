@@ -68,7 +68,7 @@ Como primer paso del preprocesado, se desarrolló una función para la conversi�
 
 La función implementada convierte cada archivo a una señal monofónica con una frecuencia de muestreo de 16 kHz y guarda los archivos resultantes en un directorio específico. Además, se automatizó el proceso para convertir de manera recursiva todos los archivos \texttt{.m4a} contenidos en una carpeta y sus subdirectorios. Los audios generados mediante voz sintética (Voz IA) no se incluyen en este proceso, ya que se encuentran originalmente en formato `.wav` y no requieren conversión adicional.
 
-```{r, include=FALSE}
+```{r,eval=FALSE}
 convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
  
   dir.create("Audios_finales_conv", showWarnings = FALSE)  #creo la carpeta de salida
@@ -116,7 +116,7 @@ El criterio de decisión se estableció mediante un umbral de energía definido.
 
 Finalmente, se reconstruyó la señal de audio concatenando temporalmente las muestras correspondientes a los segmentos validos, descartando los tramos de silencio y exportando el resultado limpio a la carpeta de destino para su posterior caracterización.
 
-```{r, include=FALSE}
+```{r, eval=FALSE}
 # ZERO CROSSING RATE
 zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
   fs <- audio@samp.rate
@@ -168,7 +168,7 @@ ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
 }
 ```
 
-```{r, include=FALSE}
+```{r,  eval=FALSE}
 # DETECCIÓN RUIDO/SILENCIO
 
 noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = T){
@@ -216,7 +216,7 @@ noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, 
 }
 ```
 
-```{r, include=FALSE}
+```{r,  eval=FALSE}
 # ELIMINACIÓN RUIDO/SILENCIO
 
 clean_audio <- function(audio, df_analisis) {
@@ -255,7 +255,7 @@ clean_audio <- function(audio, df_analisis) {
 }
 ```
 
-```{r, include=FALSE}
+```{r,  eval=FALSE}
 # GUARDADO DE AUDIOS LIMPIOS EN UNA NUEVA CARPETA
 
 dir_entrada <- "Audios_finales_conv"
@@ -502,7 +502,9 @@ voces_df <- data.frame(
   duracion = numeric(),
   zcr = numeric(),
   energia_rms = numeric(),
-  pitch = numeric(),        
+  pitch = numeric(),
+  centroide = numeric(),
+  centroide_12 = I(list()),
   stringsAsFactors = FALSE
 )
 
@@ -537,6 +539,10 @@ añadir_voz <- function(df, ruta_wav) {
   pitch_res <- period_pitch(audio)
   pitch <- pitch_res$pitch
   
+  #Centroide:
+  spec_centroid <- spectral_centroid(audio)
+  spec_centroid_12 <- spectral_centroid_12(audio)
+  
   # Nueva fila
   nueva_fila <- data.frame(
     señal = basename(ruta_wav),
@@ -547,6 +553,8 @@ añadir_voz <- function(df, ruta_wav) {
     zcr = zcr,
     energia_rms = energia_rms,
     period_pitch = pitch,
+    centroide = spec_centroid,
+    centroide_12 = I(list(spec_centroid_12)),
     stringsAsFactors = FALSE
   )
   
