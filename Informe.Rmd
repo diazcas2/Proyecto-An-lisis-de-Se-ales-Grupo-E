@@ -985,7 +985,7 @@ Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los d
 
 Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
 
-## Clasificación del origen (IA vs Humano)
+## Clasificación del origen (IA vs Humano): Coeficiente de Mel
 
 Para tratar este problema de clasificación, se probaron diferentes datasets y dataframes, con los que se entrenó un modelo *SVM con kernel RBF*.
 
@@ -1006,7 +1006,7 @@ Por este motivo se utiliza un SVM con kernel RBF, ya que este modelo:
 Para entrenar el clasificador se definió un procedimiento de validación y ajuste de hiperparámetros que permite estimar el rendimiento de forma robusta y reducir el riesgo de sobreajuste. 
 
 En primer lugar, se estableció un esquema de validación mediante la función trainControl(). En este caso se utilizó validación cruzada repetida (repeated cross-validation), dividiendo el conjunto de entrenamiento en 5 particiones (5 folds), de forma que en cada iteración se entrena el modelo con 4 folds y se valida con el fold restante. Además, el proceso completo se repite repeats = 2 veces. 
-`
+
 Una vez fijado el esquema de validación, se entrenó el modelo mediante la función `train()` (method="svmRadial") del paquete `caret`, obteniendo el modelo entrenado: `svm_fit`.
 
 ```{r, include=FALSE,eval=FALSE}
@@ -1067,7 +1067,7 @@ results <- data.frame(
 
 Se realizó el testeo sobre datos del dataset extraido de internet y sobre datos extraidos del dataset creado por nosotros.
 
-## Clasificación del origen (IA vs Humano): centroide espectral
+### centroide espectral
 
 A continuación hemos realizado dos funciones, una para que realice un random forest del centroide espectral y otra de los centroides espectrales segmentados y su desviación típica. 
 
@@ -1188,7 +1188,7 @@ Se evaluó el rendimiento del sistema bajo tres configuraciones experimentales, 
   \label{fig:roc}
 \end{figure}
 
-En esta configuración el modelo se evalúa en el mismo dominio en el que fue entrenado. La matriz de confusión muestra un número bajo de errores (106 falsos “real” y 201 falsos “IA”), y se obtiene una `accuracy \(\approx 0.934\)`, por lo que esta claro que no es azar.
+En esta configuración el modelo se evalúa en el mismo dominio en el que fue entrenado. La matriz de confusión muestra un número bajo de errores (106 falsos “real” y 201 falsos “IA”), y se obtiene una `accuracy` \(\approx 0.934\), por lo que esta claro que no es azar.
 
 Además, la curva ROC aparece muy próxima al vértice superior (comportamiento de AUC elevado), lo cual confirma que el modelo separa bien ambas clases cuando el test comparte distribución con el entrenamiento.
 
@@ -1216,7 +1216,7 @@ Estos resultados son buenos y razonables, y se explican por dos factores princip
   \label{fig:roc}
 \end{figure}
 
-Aquí se mide la generalización a un dominio distinto puesto a que son audios grabados por nosotros y audios IA generados también por nosotros. Aun así, el rendimiento sigue siendo alto: `accuracy \(\approx 0.907\)`. La curva ROC sigue mostrando una separación clara.
+Aquí se mide la generalización a un dominio distinto puesto a que son audios grabados por nosotros y audios IA generados también por nosotros. Aun así, el rendimiento sigue siendo alto: `accuracy` \(\approx 0.907\). La curva ROC sigue mostrando una separación clara.
 
 En la matriz de confusión se observa un patrón típico de cambio de dominio:
 
