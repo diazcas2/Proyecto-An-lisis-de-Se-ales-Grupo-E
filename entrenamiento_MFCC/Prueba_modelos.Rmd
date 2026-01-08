@@ -104,7 +104,7 @@ results <- data.frame(
 Obtenemos el mejor umbral
 
 ```{r}
-roc_obj <- roc(df_test_nuestro_ml$label, p, levels = c("real","ia"))
+roc_obj <- roc(df_test_nuestro_ml_total$label, p, levels = c("real","ia"))
 coords(roc_obj, "best", best.method = "youden",
        ret = c("threshold","sensitivity","specificity"))
 ```
@@ -113,7 +113,7 @@ coords(roc_obj, "best", best.method = "youden",
 thr <-1.261781e-05	
 
 pred_thr <- factor(ifelse(p >= thr, "ia", "real"), levels = c("real","ia"))
-cm_thr <- confusionMatrix(pred_thr, df_test_nuestro_ml$label)
+cm_thr <- confusionMatrix(pred_thr, df_test_nuestro_ml_total$label)
 cm_thr
 cm_thr$table
 

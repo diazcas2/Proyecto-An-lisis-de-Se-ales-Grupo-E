@@ -23,12 +23,18 @@ knitr::opts_chunk$set(
 
 
 ```{r, include=FALSE}
-library(seewave)
-library(tuneR)
-library(caret)
-library(pROC)
-library(dplyr)
-library(randomForest)
+# library(seewave)
+# library(tuneR)
+# library(caret)
+# library(pROC)
+# library(dplyr)
+# library(randomForest)
+
+if (!requireNamespace("pacman", quietly = TRUE)) install.packages("pacman")
+
+pacman::p_load(
+  dplyr, seewave, tuneR, caret, pROC, randomForest,ggplot2,nnet,av
+)
 ```
 
 # OBJETIVOS DEL PROYECTO
@@ -928,7 +934,7 @@ Existen algunos outliers en AR y N (valores de ZCR más altos), que podrían cor
 En conjunto, el boxplot indica que el ZCR contiene cierta información sobre el acento (las distribuciones no son idénticas), pero la superposición tan grande entre cajas apunta a que no es suficiente por sí solo para discriminar con fiabilidad los acentos. Esto motivó a combinar el ZCR con otras características en un modelo multinomial.
 
 ```{r, include=FALSE}
-library(ggplot2)
+# library(ggplot2)
 ```
 
 ```{r, echo=FALSE}
@@ -950,7 +956,7 @@ En conjunto, estas variables, permiten modelar tanto aspectos segmentales (conte
 
 ```{r, include=FALSE}
 #install.packages("nnet")
-library(nnet)
+#library(nnet)
 
 voces_modif$acento <- as.factor(voces_modif$acento)
 
@@ -1029,7 +1035,7 @@ svm_fit <- train(
 svm_fit
 ```
 
-En total se entrenaron 2 modelos, con 2 datasets diferentes: un dataset extraido de internet y otro dataset formado por audios nuestros y generados con IA por nosotros.
+En total se entrenaron 2 modelos, con 2 datasets diferentes: un dataset extraido de internet (enlace al dataset: \href{https://bil.eecs.yorku.ca/datasets/}{dataset for-norm}) y otro dataset formado por audios nuestros y generados con IA por nosotros.
 
 ### Proceso de testeo
 
@@ -1164,6 +1170,84 @@ Se evaluó el rendimiento del sistema bajo tres configuraciones experimentales, 
 
 3. Entrenamiento con nuestro dataset y test con nuestro dataset, para estimar el rendimiento del modelo cuando se entrena y evalúa específicamente en el contexto y características de nuestro conjunto de datos.
 
- (COMPLETAR RESULTADOS)
+#### Caso 1: Entrenado con dataset de Internet y testeado con dataset de Internet
+
+\[
+\begin{array}{c|cc}
+\textbf{Predicción} \backslash \textbf{Real} & \textbf{real} & \textbf{ia} \\
+\hline
+\textbf{real} & 2063 & 106 \\
+\textbf{ia}   & 201  & 2264 \\
+\end{array}
+\]
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{imagenes/int_int_ROC.jpg}
+  \caption{Curva ROC del modelo.}
+  \label{fig:roc}
+\end{figure}
+
+En esta configuración el modelo se evalúa en el mismo dominio en el que fue entrenado. La matriz de confusión muestra un número bajo de errores (106 falsos “real” y 201 falsos “IA”), y se obtiene una `accuracy \(\approx 0.934\)`, por lo que esta claro que no es azar.
+
+Además, la curva ROC aparece muy próxima al vértice superior (comportamiento de AUC elevado), lo cual confirma que el modelo separa bien ambas clases cuando el test comparte distribución con el entrenamiento.
+
+Estos resultados son buenos y razonables, y se explican por dos factores principales:
+
+- El dataset de Internet es grande y suele incluir variabilidad suficiente para que el SVM aprenda una frontera no lineal estable en el espacio MFCC (medias/desviaciones + $\Delta$ y $\Delta\Delta$).
+
+- No existe cambio de dominio ya que las condiciones de grabación, tipos de voces de IA y características del preprocesado son similares entre train y test.
+
+#### Caso 2: Entrenado con dataset de Internet y testeado con nuestro dataset
+
+\[
+\begin{array}{c|cc}
+\textbf{Predicción} \backslash \textbf{Real} & \textbf{real} & \textbf{ia} \\
+\hline
+\textbf{real} & 177 & 3 \\
+\textbf{ia}   & 26  & 105 \\
+\end{array}
+\]
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{imagenes/int_ntr_ROC.jpg}
+  \caption{Curva ROC del modelo.}
+  \label{fig:roc}
+\end{figure}
+
+Aquí se mide la generalización a un dominio distinto puesto a que son audios grabados por nosotros y audios IA generados también por nosotros. Aun así, el rendimiento sigue siendo alto: `accuracy \(\approx 0.907\)`. La curva ROC sigue mostrando una separación clara.
+
+En la matriz de confusión se observa un patrón típico de cambio de dominio:
+
+- Apenas hay falsos “real” cuando el audio es IA (solo 3 casos), es decir, el modelo detecta muy bien IA en este test.
+
+- El principal error es etiquetar como IA algunos audios reales (26 casos), lo que sugiere que ciertas características de nuestros audios reales (grabación, limpieza de silencios, energía residual, etc.) pueden parecerse a rasgos presentes en parte del material sintético del dataset de Internet.
+
+Estos resultados son lógicos: al cambiar de dominio suele aparecer una degradación moderada porque cambian distribuciones (calidad del micrófono, ruido de fondo, compresión, etc.). Aun así, que el rendimiento se mantenga por encima del 90% sugiere que los MFCC agregados y sus deltas están capturando rasgos relativamente transferibles entre datasets.
+
+#### Caso 3: Entrenado con nuestro dataset y testeado con nuestro dataset 
+
+\[
+\begin{array}{c|cc}
+\textbf{Predicción} \backslash \textbf{Real} & \textbf{real} & \textbf{ia} \\
+\hline
+\textbf{real} & 153 & 0 \\
+\textbf{ia}   & 0  & 108 \\
+\end{array}
+\]
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{imagenes/ntr_ntr_ROC.jpg}
+  \caption{Curva ROC del modelo.}
+  \label{fig:roc}
+\end{figure}
+
+En esta combinación se obtiene accuracy = 1.0 (sin ningún error) y una ROC perfecta. Este resultado es poco habitual para un escenario realista de detección IA vs humano, y normalmente indica que la clasificación, ha quedado “demasiado fácil” para el modelo.
+
+Esto puede deberse a que el diseño del dataset introduce una estructura muy repetitiva: mismas frases, solo una variedad de 5 personas (por lo que se repiten mucho las mismas voces) y misma cadena de grabación y limpieza, además de realizar el mismo procedimiento de generación IA usando también las mismas frases. Esto puede provocar que el modelo no esté aprendiendo “humanidad vs IA” en un sentido general, sino artefactos muy específicos de nuestro contexto.
+
+En conclusión, los resultados obtenidos no son una evidencia sólida de que el modelo generalice a “cualquier” voz humana vs “cualquier” IA, porque el test probablemente comparte demasiada estructura con el entrenamiento.
 
 # REFERENCIAS
