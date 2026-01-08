@@ -37,6 +37,8 @@ pacman::p_load(
 )
 ```
 
+## INTRODUCCIÓN
+
 ## OBJETIVOS DEL PROYECTO
 
 El objetivo principal de este trabajo es analizar señales de voz a partir de grabaciones propias y desarrollar modelos de clasificación capaces de identificar distintas características de la señal de audio. Para ello, se parte de un conjunto de audios etiquetados y se emplean técnicas de preprocesado, extracción de características y aprendizaje automático, con el fin de obtener modelos que puedan generalizar su comportamiento ante audios no utilizados durante el entrenamiento.
