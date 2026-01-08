@@ -372,7 +372,7 @@ Para adaptar esta representación por tramas a modelos clásicos de aprendizaje 
 
 Con el objetivo de caracterizar el contenido espectral de las señales de voz, se implementó una función para el cálculo del centroide espectral global de cada audio. Este descriptor se define como la frecuencia media ponderada por la energía del espectro y proporciona una medida resumen de la distribución espectral de la señal. Previamente al cálculo, se elimina el componente de continua de la señal con el fin de evitar un sesgo hacia bajas frecuencias. El centroide se obtiene a partir del espectro de potencia calculado mediante la transformada rápida de Fourier, considerando únicamente las componentes de frecuencia positivas. De este modo, cada señal queda representada por un único valor que resume su contenido espectral global.
 
-```{r}
+```{r, echo=FALSE}
 spectral_centroid <- function(w) {
   fs <- as.numeric(w@samp.rate)
   x  <- as.numeric(w@left)
@@ -403,7 +403,7 @@ Con el fin de capturar información espectral a lo largo del tiempo, se desarrol
 
 La segmentación temporal proporciona una descripción más detallada del contenido espectral, al incorporar información temporal que no queda reflejada en una medida global única.
 
-```{r}
+```{r, echo=FALSE}
 spectral_centroid_12 <- function(w, n_parts = 12) {
   fs <- as.numeric(w@samp.rate)
   x  <- as.numeric(w@left)
@@ -863,31 +863,24 @@ boxplot(period_pitch ~ sexo,
         xlab = "Sexo")
 ```
 
-Por último, el análisis de correlación entre las variables numéricas muestra una alta correlación entre la duración y la ZCR, mientras que el pitch presenta una correlación prácticamente nula con el resto de variables. Esto sugiere que el pitch aporta información complementaria y relevante para la tarea de clasificación.
+El análisis de correlación entre las variables numéricas muestra una alta correlación entre la duración y la ZCR, mientras que el pitch presenta una correlación prácticamente nula con el resto de variables. Esto sugiere que el pitch aporta información complementaria y relevante para la tarea de clasificación.
 
 ```{r, echo=FALSE}
 vars_num <- voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch")]
 round(cor(vars_num, use = "complete.obs"), 2)
 ```
+
 En cuanto al centroide espectral global, se observa una diferencia clara entre las voces humanas y las generadas por inteligencia artificial, tanto en el grupo masculino como en el femenino. En ambos casos, las voces generadas por IA presentan valores de centroide más elevados, lo que indica una mayor concentración de energía en frecuencias altas. Esta diferencia es especialmente marcada en las voces masculinas, donde el solapamiento entre clases es reducido. En el caso de las voces femeninas, aunque la tendencia se mantiene, se aprecia un mayor solapamiento entre ambas distribuciones.
 
 ```{r, echo = FALSE}
-ggplot(df_centroid_global, aes(x = origen, y = centroid_global, fill = origen)) +
-  geom_boxplot() +
-  facet_wrap(~ sexo) +
-  labs(title = "Centroide espectral: Humano vs IA (por sexo)") +
-  theme_minimal()
+boxplot(centroid_global ~ origen + sexo,
+        data = df_centroid_global,
+        main = "Centroide espectral: Humano vs IA (por sexo)",
+        xlab = "Sexo y origen",
+        ylab = "Centroide espectral (Hz)")
 ```
 
-Al analizar la desviación típica del centroide espectral obtenida a partir de la segmentación temporal, se esperaba observar una mayor capacidad de separación entre voces humanas y generadas por inteligencia artificial, bajo la hipótesis de que las voces humanas presentan una mayor variabilidad espectral a lo largo del tiempo. Sin embargo, los resultados muestran un solapamiento considerable entre ambas clases, tanto en voces masculinas como femeninas, lo que indica que esta medida agregada, considerada de forma aislada, no resulta suficiente para discriminar de manera fiable entre ambos tipos de voz. Por si solo, los parametros del centroide segmentado no dan mucha información, no obstante, después analizaremos a ver si todos ellos en su conjunto pueden proporcionar clasificaciones más robustas.
-
-```{r, echo = FALSE}
-ggplot(df_centroid_12, aes(x = origen, y = centroid_sd12, fill = origen)) +
-  geom_boxplot() +
-  facet_wrap(~ sexo) +
-  labs(title = "Desviación del centroide espectral: Humano vs IA (por sexo)") +
-  theme_minimal()
-```
+Al analizar la desviación típica del centroide espectral obtenida a partir de la segmentación temporal, se esperaba observar una mayor capacidad de separación entre voces humanas y generadas por inteligencia artificial, bajo la hipótesis de que las voces humanas presentan una mayor variabilidad espectral a lo largo del tiempo. Sin embargo, los resultados muestran un solapamiento considerable entre ambas clases, tanto en voces masculinas como femeninas, lo que indica que esta medida agregada, considerada de forma aislada, no resulta suficiente para discriminar de manera fiable entre ambos tipos de voz. Por si solo, los parametros del centroide segmentado no dan mucha información, no obstante, después los analizaremos todos juntos para ver si entre todos ellos en conjunto pueden proporcionar clasificaciones más robustas.
 
 ## MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
 
@@ -1037,7 +1030,9 @@ Se realizó el testeo sobre datos del dataset extraido de internet y sobre datos
 
 #### Centroide espectral
 
-A continuación hemos realizado dos funciones, una para que realice un random forest del centroide espectral y otra de los centroides espectrales segmentados y su desviación típica. 
+A continuación, se entrenaron dos modelos de clasificación basados en random forest con el objetivo de evaluar la capacidad discriminativa de las características derivadas del centroide espectral. El primer modelo utiliza exclusivamente el centroide espectral global, mientras que el segundo incorpora los centroides espectrales obtenidos mediante segmentación temporal, junto con su desviación típica. En ambos casos, el análisis se realizó de forma independiente para voces masculinas y femeninas, por lo que se obtuvieron matrices de confusión separadas para cada grupo.
+
+Las matrices de confusión del modelo con el centroide global son las siguientes:
 
 ```{r, echo = FALSE}
 rf_by_sex <- function(df, sex_value, seed = 123, train_prop = 0.7) {
@@ -1069,14 +1064,22 @@ rf_by_sex <- function(df, sex_value, seed = 123, train_prop = 0.7) {
 rf_M <- rf_by_sex(df_centroid_global, "M")
 rf_F <- rf_by_sex(df_centroid_global, "F")
 
-rf_M$confusion
-rf_M$accuracy
+conf_M <- rf_M$confusion
+conf_F <- rf_F$confusion
 
-rf_F$confusion
-rf_F$accuracy
+colnames(conf_M) <- paste("Pred_M", colnames(conf_M), sep = "_")
+rownames(conf_M) <- paste("Real_M", rownames(conf_M), sep = "_")
+
+colnames(conf_F) <- paste("Pred_F", colnames(conf_F), sep = "_")
+rownames(conf_F) <- paste("Real_F", rownames(conf_F), sep = "_")
+
+conf_table <- cbind(conf_M, conf_F)
+
+knitr::kable(conf_table, caption = "Matrices de confusión del modelo basado en el centroide espectral global, separadas por sexo")
+
 ```
 
-El modelo de random forest entrenado únicamente con el centroide espectral global presenta una capacidad moderada de clasificación entre voces humanas y generadas por IA. Aunque el centroide global muestra una separación clara en el análisis exploratorio, los resultados del modelo indican la existencia de errores de clasificación relevantes, especialmente en la identificación de voces humanas etiquetadas como IA. Esto sugiere que, si bien el centroide espectral global captura diferencias estructurales en la distribución espectral de las señales, su uso como única variable explicativa resulta insuficiente para una clasificación robusta, particularmente cuando existe solapamiento entre clases.
+El modelo de random forest entrenado únicamente con el centroide espectral global presenta una capacidad moderada de clasificación entre voces humanas y generadas por IA. En concreto, se obtiene una precisión del 69,1 % en las voces masculinas y del 77,8 % en las voces femeninas, lo que indica un rendimiento desigual según el sexo. Aunque el centroide global muestra una separación clara en el análisis exploratorio, los resultados del modelo ponen de manifiesto la existencia de errores de clasificación relevantes, especialmente en la identificación de voces humanas etiquetadas como IA. Esto sugiere que, si bien el centroide espectral global captura diferencias estructurales en la distribución espectral de las señales, su uso como única variable explicativa resulta insuficiente para una clasificación robusta, particularmente en presencia de solapamiento entre clases.
 
 ```{r, echo = FALSE}
 rf_by_sex_centroid12_sd <- function(df, sex_value, seed = 123, train_prop = 0.7) {
@@ -1112,17 +1115,25 @@ rf_by_sex_centroid12_sd <- function(df, sex_value, seed = 123, train_prop = 0.7)
 ```
 
 ```{r, echo = FALSE}
-rf12sd_M <- rf_by_sex_centroid12_sd(df_centroid_12, "M")
+rf12sd_M <- rf_by_sex_centroid12_sd(df_centroid_12, "M") 
 rf12sd_F <- rf_by_sex_centroid12_sd(df_centroid_12, "F")
 
-rf12sd_M$confusion
-rf12sd_M$accuracy
+conf_M <- rf12sd_M$confusion
+conf_F <- rf12sd_F$confusion
 
-rf12sd_F$confusion
-rf12sd_F$accuracy
+colnames(conf_M) <- paste("Pred_M", colnames(conf_M), sep = "_")
+rownames(conf_M) <- paste("Real_M", rownames(conf_M), sep = "_")
+
+colnames(conf_F) <- paste("Pred_F", colnames(conf_F), sep = "_")
+rownames(conf_F) <- paste("Real_F", rownames(conf_F), sep = "_")
+
+conf_table_12sd <- cbind(conf_M, conf_F)
+
+knitr::kable(conf_table_12sd, caption = "Matrices de confusión (12 centroides + sd12), separadas por sexo")
+
 ```
 
-Al incorporar la información temporal del centroide espectral mediante la segmentación en doce partes, junto con su desviación típica, se observa una mejora consistente en el rendimiento del modelo de clasificación. A pesar de que ni los centroides segmentados ni la desviación típica presentan una separación clara cuando se analizan de forma individual, su uso conjunto permite al modelo capturar patrones más complejos en la evolución temporal del espectro. Esto se traduce en un aumento de la precisión global, especialmente en la correcta identificación de voces humanas, reduciendo el número de falsos positivos asociados a la clase IA.
+Al incorporar la información temporal del centroide espectral mediante la segmentación en doce partes, junto con su desviación típica, se observa una mejora consistente en el rendimiento del modelo de clasificación. En particular, la precisión aumenta hasta 77,9 % en las voces masculinas y 81,9 % en las voces femeninas, lo que confirma una ganancia respecto al modelo basado únicamente en el centroide global. A pesar de que ni los centroides segmentados ni la desviación típica presentan una separación clara cuando se analizan de forma individual, su uso conjunto permite al modelo capturar patrones más complejos en la evolución temporal del espectro. Esto se traduce en un aumento de la precisión global, especialmente en la correcta identificación de voces humanas, reduciendo el número de falsos positivos asociados a la clase IA.
 
 En conjunto, los resultados muestran que, aunque el centroide espectral global parece diferenciar de manera más clara entre voces humanas y generadas por IA en un análisis univariado, la utilización conjunta de los centroides espectrales segmentados y su desviación típica ofrece un mejor rendimiento en el contexto de modelos de clasificación multivariantes. Este comportamiento pone de manifiesto que la información relevante no reside únicamente en un descriptor agregado, sino en la combinación de múltiples características que capturan tanto la estructura global como la variabilidad temporal del espectro. Por tanto, el centroide espectral resulta especialmente útil cuando se integra como parte de un conjunto de características más amplio, más que como un descriptor aislado.
 
