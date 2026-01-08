@@ -37,7 +37,7 @@ pacman::p_load(
 )
 ```
 
-# OBJETIVOS DEL PROYECTO
+## OBJETIVOS DEL PROYECTO
 
 El objetivo principal de este trabajo es analizar señales de voz a partir de grabaciones propias y desarrollar modelos de clasificación capaces de identificar distintas características de la señal de audio. Para ello, se parte de un conjunto de audios etiquetados y se emplean técnicas de preprocesado, extracción de características y aprendizaje automático, con el fin de obtener modelos que puedan generalizar su comportamiento ante audios no utilizados durante el entrenamiento.
 
@@ -58,7 +58,7 @@ De manera más específica, los objetivos del trabajo son los siguientes:
 * Evaluar el rendimiento de los modelos propuestos mediante técnicas de validación adecuadas.
 
 
-# PREPROCESADO
+## PREPROCESADO
 
 ### Conversión y lectura de audios
 
@@ -285,7 +285,7 @@ for (ruta_archivo in archivos) {
 }
 ```
 
-# EXTRACCIÓN DE CARACTERÍSTICAS
+## EXTRACCIÓN DE CARACTERÍSTICAS
 
 Las señales de voz contienen mucha información, pero trabajar directamente con el audio no resulta práctico para entrenar modelos de clasificación. Por ello, es necesario extraer una serie de características numéricas que describan la señal de forma más simple y manejable.
 
@@ -436,7 +436,9 @@ spectral_centroid_12 <- function(w, n_parts = 12) {
 }
 ```
 
-# CONSTRUCCIÓN DEL CONJUNTO DE DATOS
+## CONSTRUCCIÓN DEL CONJUNTO DE DATOS
+
+### Conjunto de datos general
 
 Para organizar y analizar los 466 audios, se creó un dataframe que contiene las características y etiquetas de cada audio, donde denotamos: 
 
@@ -580,7 +582,7 @@ df_carpeta <- function(df, carpeta) {
 voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
 ```
 
-## Construcción del conjunto de datos para detección de IA: MFCC
+### Conjunto de datos para detección de IA: MFCC
 
 Para cada archivo de audio se aplicó un preprocesado común con el objetivo de asegurar la comparabilidad entre señales. En concreto, se convirtió cada audio a mono mediante la función `to_mono()`, promediando los canales izquierdo y derecho en caso de que la señal fuese estéreo. Después, se homogeneizó la frecuencia de muestreo a un valor fijo (16 kHz) mediante la función `resample_if_needed()`, ya que el cálculo de MFCC depende directamente de la escala de frecuencias y no es comparable si los audios están a distintas tasas de muestreo.
 
@@ -799,7 +801,7 @@ bad_rows <- apply(df_ml %>% select(-label), 1, function(r) any(is_bad(r)))
 train_df <- df_ml[!bad_rows, ]
 ```
 
-## Construcción de los conjuntos de datos para detección de IA: Centroide espectral
+### Conjuntos de datos para detección de IA: Centroide espectral
 
 También se generaron dos conjuntos de datos específicos basados en el centroide espectral. El primero de ellos contiene, para cada señal, las etiquetas de sexo, origen y acento junto con el valor del centroide espectral global, calculado sobre la totalidad del audio. El segundo conjunto de datos incluye las mismas etiquetas y una representación temporal del centroide espectral, obtenida mediante la segmentación de cada señal en doce partes, junto con una medida agregada de su variabilidad, calculada como la desviación típica de los doce centroides.
 
@@ -835,7 +837,7 @@ df_centroid_12$centroid_sd12 <- apply(centroid12_mat, 1, sd, na.rm = TRUE)
 ```
 
 
-# ANÁLISIS EXPLORATORIO
+## ANÁLISIS EXPLORATORIO
 
 Antes de aplicar los métodos de clasificación, se realizó un análisis exploratorio del conjunto de datos con el objetivo de comprender la distribución de las variables y detectar posibles patrones relevantes. Así, el conjunto de datos final está compuesto por 466 audios, con una distribución equilibrada entre voces femeninas (240) y masculinas (226), lo que reduce la posibilidad de sesgos derivados del desbalanceo de clases.
 
@@ -885,9 +887,9 @@ ggplot(df_centroid_12, aes(x = origen, y = centroid_sd12, fill = origen)) +
   theme_minimal()
 ```
 
-# MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
+## MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
 
-## Clasificación del sexo
+### Clasificación del sexo
 
 A partir del conjunto de características extraídas y del análisis exploratorio realizado, tenemos como objetivo la clasificación del sexo del hablante. De esta forma, se plantea el problema como una clasificación binaria y se emplea un modelo de regresión logística. Este tipo de modelo permite relacionar las características extraídas con la probabilidad de que una voz corresponda a un hablante masculino o femenino. 
 
@@ -949,76 +951,7 @@ Sin embargo, en el análisis exploratorio vimos que el diagrama de cajas del pit
 
 En conjunto, estos resultados refuerzan que el pitch es el descriptor más relevante para la clasificación del sexo, pero que la superposición natural de frecuencias humanas introduce un margen de error inevitable, explicando los puntos intermedios en la gráfica de predicciones.
 
-
-## Clasificación del acento
-
-Además de la clasificación por sexo, se intentó abordar la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. 
-
-Comenzamos haciendo un estudio exploratorio de las características acústicas para comprobar si alguna podía, por sí sola, ayudar a distinguir entre acentos. Nos centramos en la tasa de cruces por cero (ZCR) ya que está muy relacionada con el contenido de altas frecuencias y con la presencia de consonantes fricativas o sonidos sordos, que pueden variar entre acentos, ya sea por mayor aspiración, articulación más “suave” o más “marcada”, etc.
-
-Se representó la distribución del ZCR por acento mediante un diagrama de cajas, del cual se observa que:
-
-Las tres categorías (AN: andaluz, AR: argentino, N: neutro) presentan rangos de ZCR parcialmente solapados, lo que indica que no hay una separación clara solo con esta característica.
-
-El acento neutro (N) muestra una mediana de ZCR ligeramente más alta y una dispersión mayor, mientras que AN y AR parecen algo más compactos y con medianas algo inferiores.
-
-Existen algunos outliers en AR y N (valores de ZCR más altos), que podrían corresponder a audios concretos con más ruido, más fricación o peor calidad de grabación.
-
-En conjunto, el boxplot indica que el ZCR contiene cierta información sobre el acento (las distribuciones no son idénticas), pero la superposición tan grande entre cajas apunta a que no es suficiente por sí solo para discriminar con fiabilidad los acentos. Esto motivó a combinar el ZCR con otras características en un modelo multinomial.
-
-```{r, include=FALSE}
-# library(ggplot2)
-```
-
-```{r, echo=FALSE}
-ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
-  geom_boxplot() +
-  labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") +
-  theme_minimal()
-```
-
-Dado lo visto y teniendo en cuenta que se trata de una clasificación multiclase, se planteó un modelo de regresión logística multinomial utilizando como predictores varios descriptores acústicos de bajo nivel: ZCR, la energía RMS, la duración del audio y el pitch period. Estas características se eligieron por su relación con aspectos articulatorios y prosódicos que suelen diferir entre acentos:
-
-La energía RMS resume la intensidad media de la señal y puede reflejar diferencias en el patrón de acentuación o en la “fuerza” con la que se articula.
-
-La duración del audio captura diferencias en el tempo o velocidad de habla, ya que algunos acentos tienden a ser más rápidos o más pausados.
-
-El period pitch, inversamente relacionado con la frecuencia fundamental, recoge variaciones en la entonación y altura de la voz, otro rasgo típicamente distintivo entre acentos.
-
-En conjunto, estas variables, permiten modelar tanto aspectos segmentales (contenido en altas frecuencias, presencia de fricativas, etc.) como suprasegmentales (ritmo, intensidad y entonación), que son precisamente los elementos en los que suelen diferir los acentos.
-
-```{r, include=FALSE}
-#install.packages("nnet")
-#library(nnet)
-
-voces_modif$acento <- as.factor(voces_modif$acento)
-
-mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch, data = voces_modif, maxit=500)
-
-summary(mod_acento)
-```
-
-Para evaluar la capacidad explicativa del modelo se utilizó el pseudo-$R^2$ de McFadden. En regresión logística el $R^2$ clásico no es adecuado porque no existe una descomposición de la varianza análoga a la de la regresión lineal, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, y se define como
-
-$$R^2_{\text{McFadden}} \;=\; 1 - \frac{\log L_{\text{modelo}}}{\log L_{\text{nulo}}}$$
-
-donde $\log L_{\text{modelo}}$ es la log-verosimilitud del modelo completo (con los predictores ZCR, energía RMS, duración y periodo de pitch) y $\log L_{\text{nulo}}$ la de un modelo que solo incluye el intercepto. Valores más altos de $R^2_{\text{McFadden}}~$ indican que el modelo con predictores mejora de forma apreciable la explicación de los datos frente al modelo nulo, mientras que valores cercanos a cero sugieren que las variables empleadas apenas añaden capacidad discriminativa entre acentos.
-
-```{r, include=FALSE}
-logL_modelo <- logLik(mod_acento)
-
-mod_nulo <- nnet::multinom(acento ~ 1, data = voces_modif)
-logL_nulo <- logLik(mod_nulo)
-
-r2_mcfadden <- as.numeric(1 - (logL_modelo / logL_nulo)) #Fórmula de McFadden: 1 - (logL_modelo / logL_nulo)
-print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
-```
-
-Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos, los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento español neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
-
-Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
-
-## Clasificación del origen (IA vs Humano): Coeficiente de Mel
+### Clasificación del origen (IA vs Humano): Coeficiente de Mel
 
 Para tratar este problema de clasificación, se probaron diferentes datasets y dataframes, con los que se entrenó un modelo *SVM con kernel RBF*.
 
@@ -1034,7 +967,7 @@ Por este motivo se utiliza un SVM con kernel RBF, ya que este modelo:
 - Suele funcionar muy bien cuando hay un número medio de características (ni muy pocas ni miles)
 - Es un baseline clásico y robusto en tareas de voz y audio cuando se trabaja con MFCC y estadísticas agregadas. [@temko2006classification]
 
-### Proceso de entrenamiento
+#### Proceso de entrenamiento
 
 Para entrenar el clasificador se definió un procedimiento de validación y ajuste de hiperparámetros que permite estimar el rendimiento de forma robusta y reducir el riesgo de sobreajuste. 
 
@@ -1070,7 +1003,7 @@ svm_fit
 
 En total se entrenaron 2 modelos, con 2 datasets diferentes: un dataset extraido de internet (enlace al dataset: \href{https://bil.eecs.yorku.ca/datasets/}{dataset for-norm}) y otro dataset formado por audios nuestros y generados con IA por nosotros.
 
-### Proceso de testeo
+#### Proceso de testeo
 
 Para evaluar el rendimiento del modelo una vez entrenado, en primer lugar, se generaron las predicciones del modelo sobre el conjunto de test mediante la función `predict()`. Por un lado, se solicitaron las probabilidades por clase, extrayendo concretamente la probabilidad asociada a la clase “ia” y por otro lado, se obtuvo también la predicción final de clase.
 
@@ -1100,7 +1033,7 @@ results <- data.frame(
 
 Se realizó el testeo sobre datos del dataset extraido de internet y sobre datos extraidos del dataset creado por nosotros.
 
-### centroide espectral
+#### Centroide espectral
 
 A continuación hemos realizado dos funciones, una para que realice un random forest del centroide espectral y otra de los centroides espectrales segmentados y su desviación típica. 
 
@@ -1193,7 +1126,7 @@ En conjunto, los resultados muestran que, aunque el centroide espectral global p
 
 Por último, al comparar estos resultados con los obtenidos mediante otros descriptores espectrales más complejos, como los coeficientes cepstrales en escala Mel (MFCC), se observa que estos últimos ya incorporan de forma más eficiente información espectral y temporal relevante para la clasificación. En consecuencia, la inclusión del centroide espectral en modelos que ya utilizan MFCC no aporta una mejora sustancial adicional.
 
-### Resultados
+#### Resultados
 
 Se evaluó el rendimiento del sistema bajo tres configuraciones experimentales, combinando distintos conjuntos de entrenamiento y test con el objetivo de analizar tanto el desempeño en condiciones controladas como su capacidad de generalización:
 
@@ -1203,7 +1136,7 @@ Se evaluó el rendimiento del sistema bajo tres configuraciones experimentales, 
 
 3. Entrenamiento con nuestro dataset y test con nuestro dataset, para estimar el rendimiento del modelo cuando se entrena y evalúa específicamente en el contexto y características de nuestro conjunto de datos.
 
-#### Caso 1: Entrenado con dataset de Internet y testeado con dataset de Internet
+##### Caso 1: Entrenado con dataset de Internet y testeado con dataset de Internet
 
 \[
 \begin{array}{c|cc}
@@ -1231,7 +1164,7 @@ Estos resultados son buenos y razonables, y se explican por dos factores princip
 
 - No existe cambio de dominio ya que las condiciones de grabación, tipos de voces de IA y características del preprocesado son similares entre train y test.
 
-#### Caso 2: Entrenado con dataset de Internet y testeado con nuestro dataset
+##### Caso 2: Entrenado con dataset de Internet y testeado con nuestro dataset
 
 \[
 \begin{array}{c|cc}
@@ -1259,7 +1192,7 @@ En la matriz de confusión se observa un patrón típico de cambio de dominio:
 
 Estos resultados son lógicos: al cambiar de dominio suele aparecer una degradación moderada porque cambian distribuciones (calidad del micrófono, ruido de fondo, compresión, etc.). Aun así, que el rendimiento se mantenga por encima del 90% sugiere que los MFCC agregados y sus deltas están capturando rasgos relativamente transferibles entre datasets.
 
-#### Caso 3: Entrenado con nuestro dataset y testeado con nuestro dataset 
+##### Caso 3: Entrenado con nuestro dataset y testeado con nuestro dataset 
 
 \[
 \begin{array}{c|cc}
@@ -1283,4 +1216,72 @@ Esto puede deberse a que el diseño del dataset introduce una estructura muy rep
 
 En conclusión, los resultados obtenidos no son una evidencia sólida de que el modelo generalice a “cualquier” voz humana vs “cualquier” IA, porque el test probablemente comparte demasiada estructura con el entrenamiento.
 
-# REFERENCIAS
+### Clasificación del acento
+
+Además de la clasificación por sexo, se intentó abordar la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. 
+
+Comenzamos haciendo un estudio exploratorio de las características acústicas para comprobar si alguna podía, por sí sola, ayudar a distinguir entre acentos. Nos centramos en la tasa de cruces por cero (ZCR) ya que está muy relacionada con el contenido de altas frecuencias y con la presencia de consonantes fricativas o sonidos sordos, que pueden variar entre acentos, ya sea por mayor aspiración, articulación más “suave” o más “marcada”, etc.
+
+Se representó la distribución del ZCR por acento mediante un diagrama de cajas, del cual se observa que:
+
+Las tres categorías (AN: andaluz, AR: argentino, N: neutro) presentan rangos de ZCR parcialmente solapados, lo que indica que no hay una separación clara solo con esta característica.
+
+El acento neutro (N) muestra una mediana de ZCR ligeramente más alta y una dispersión mayor, mientras que AN y AR parecen algo más compactos y con medianas algo inferiores.
+
+Existen algunos outliers en AR y N (valores de ZCR más altos), que podrían corresponder a audios concretos con más ruido, más fricación o peor calidad de grabación.
+
+En conjunto, el boxplot indica que el ZCR contiene cierta información sobre el acento (las distribuciones no son idénticas), pero la superposición tan grande entre cajas apunta a que no es suficiente por sí solo para discriminar con fiabilidad los acentos. Esto motivó a combinar el ZCR con otras características en un modelo multinomial.
+
+```{r, include=FALSE}
+# library(ggplot2)
+```
+
+```{r, echo=FALSE}
+ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
+  geom_boxplot() +
+  labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") +
+  theme_minimal()
+```
+
+Dado lo visto y teniendo en cuenta que se trata de una clasificación multiclase, se planteó un modelo de regresión logística multinomial utilizando como predictores varios descriptores acústicos de bajo nivel: ZCR, la energía RMS, la duración del audio y el pitch period. Estas características se eligieron por su relación con aspectos articulatorios y prosódicos que suelen diferir entre acentos:
+
+La energía RMS resume la intensidad media de la señal y puede reflejar diferencias en el patrón de acentuación o en la “fuerza” con la que se articula.
+
+La duración del audio captura diferencias en el tempo o velocidad de habla, ya que algunos acentos tienden a ser más rápidos o más pausados.
+
+El period pitch, inversamente relacionado con la frecuencia fundamental, recoge variaciones en la entonación y altura de la voz, otro rasgo típicamente distintivo entre acentos.
+
+En conjunto, estas variables, permiten modelar tanto aspectos segmentales (contenido en altas frecuencias, presencia de fricativas, etc.) como suprasegmentales (ritmo, intensidad y entonación), que son precisamente los elementos en los que suelen diferir los acentos.
+
+```{r, include=FALSE}
+#install.packages("nnet")
+#library(nnet)
+
+voces_modif$acento <- as.factor(voces_modif$acento)
+
+mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch, data = voces_modif, maxit=500)
+
+summary(mod_acento)
+```
+
+Para evaluar la capacidad explicativa del modelo se utilizó el pseudo-$R^2$ de McFadden. En regresión logística el $R^2$ clásico no es adecuado porque no existe una descomposición de la varianza análoga a la de la regresión lineal, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, y se define como
+
+$$R^2_{\text{McFadden}} \;=\; 1 - \frac{\log L_{\text{modelo}}}{\log L_{\text{nulo}}}$$
+
+donde $\log L_{\text{modelo}}$ es la log-verosimilitud del modelo completo (con los predictores ZCR, energía RMS, duración y periodo de pitch) y $\log L_{\text{nulo}}$ la de un modelo que solo incluye el intercepto. Valores más altos de $R^2_{\text{McFadden}}~$ indican que el modelo con predictores mejora de forma apreciable la explicación de los datos frente al modelo nulo, mientras que valores cercanos a cero sugieren que las variables empleadas apenas añaden capacidad discriminativa entre acentos.
+
+```{r, include=FALSE}
+logL_modelo <- logLik(mod_acento)
+
+mod_nulo <- nnet::multinom(acento ~ 1, data = voces_modif)
+logL_nulo <- logLik(mod_nulo)
+
+r2_mcfadden <- as.numeric(1 - (logL_modelo / logL_nulo)) #Fórmula de McFadden: 1 - (logL_modelo / logL_nulo)
+print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
+```
+
+Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos, los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento español neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
+
+Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
+
+## REFERENCIAS
