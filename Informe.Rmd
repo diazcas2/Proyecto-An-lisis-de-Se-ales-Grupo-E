@@ -233,9 +233,6 @@ noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, 
 }
 ```
 
-
-```{r,include=FALSE,  eval=FALSE}
-
 ```{r, eval=FALSE, include=FALSE}
 # ELIMINACIÓN RUIDO/SILENCIO
 
@@ -390,7 +387,7 @@ Además se calculan $\Delta$ y $\Delta\Delta$ son las derivadas temporales de lo
 
 ### Centroide espectral
 
-#### Centroide espectral global
+**Centroide espectral global**
 
 
 Con el objetivo de caracterizar la distribución de la energía en el dominio de la frecuencia, se calculó el centroide espectral global de cada señal de voz. Este descriptor puede interpretarse como el “centro de gravedad” del espectro, ya que corresponde a la media de las frecuencias ponderada por su energía, de modo que valores más elevados indican una mayor concentración de energía en frecuencias altas. Previamente a su cálculo, se eliminó el valor medio de la señal, correspondiente a la componente de continua, ya que su presencia introduce un componente espectral en 0 Hz que no aporta información acústica relevante y puede sesgar artificialmente el centroide hacia bajas frecuencias.
@@ -422,7 +419,7 @@ spectral_centroid <- function(w) {
 ```
 
 
-#### Segmentación temporal en 12 partes
+**Segmentación temporal en 12 partes**
 
 
 Con el fin de capturar información espectral a lo largo del tiempo, se desarrolló una segunda función que divide cada señal de audio en doce segmentos temporales consecutivos de igual duración. Para cada uno de estos segmentos se calcula de forma independiente el centroide espectral siguiendo el mismo procedimiento que en el caso global. Esta estrategia permite representar cada audio mediante un vector de doce valores, cada uno correspondiente a un segmento temporal distinto, describiendo así la evolución del centroide espectral a lo largo de la señal. 
@@ -866,7 +863,7 @@ summary(voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch","centroide
 
 En cuanto a la frecuencia fundamental (pitch), se observa un rango amplio de valores (aproximadamente entre 80 y 285 Hz), consistente con voces humanas. El análisis por sexo revela que las voces femeninas presentan valores de pitch más elevados que las masculinas. Si lo representamos usando un diagrama de cajas, podemos ver un solapamiento entre ambas distribuciones, lo que indica que probablemente existan errores de clasificación en algunos audios concretos al emplear únicamente esta característica.
 
-```{r, echo=FALSE}
+```{r,echo=FALSE,fig.cap="Distribución del pitch según el sexo."}
 # Aumentamos el margen derecho
 par(mar = c(5, 4, 4, 6))  # c(bottom, left, top, right)
 
@@ -898,7 +895,6 @@ legend(x = 3.3, y = max(voces_df$period_pitch),
        bg = "white")
 
 par(xpd = FALSE)  # restaurar
-
 ```
 
 El análisis de correlación muestra que la duración y la ZCR están fuertemente relacionadas, mientras que el pitch es prácticamente independiente del resto de variables, aportando información complementaria. De manera similar, el centroide espectral muestra baja correlación con las demás características, lo que indica que también contribuye con información adicional útil para la clasificación.
@@ -910,12 +906,13 @@ round(cor(vars_num, use = "complete.obs"), 2)
 
 En cuanto al centroide espectral global, se observa una diferencia clara entre las voces humanas y las generadas por inteligencia artificial, tanto en el grupo masculino como en el femenino. En ambos casos, las voces generadas por IA presentan valores de centroide más elevados, lo que indica una mayor concentración de energía en frecuencias altas. Esta diferencia es especialmente marcada en las voces masculinas, donde el solapamiento entre clases es reducido. En el caso de las voces femeninas, aunque la tendencia se mantiene, se aprecia un mayor solapamiento entre ambas distribuciones.
 
-```{r, echo = FALSE}
+```{r,echo=FALSE, fig.cap="Centroide espectral: Humano vs IA por sexo."}
 boxplot(centroide ~ origen + sexo,
         data = voces_df,
         main = "Centroide espectral: Humano vs IA (por sexo)",
         xlab = "Sexo y origen",
         ylab = "Centroide espectral (Hz)")
+
 ```
 
 Al analizar la desviación típica del centroide espectral obtenida a partir de la segmentación temporal, se esperaba observar una mayor capacidad de separación entre voces humanas y generadas por inteligencia artificial, bajo la hipótesis de que las voces humanas presentan una mayor variabilidad espectral a lo largo del tiempo. Sin embargo, los resultados muestran un solapamiento considerable entre ambas clases, tanto en voces masculinas como femeninas, lo que indica que esta medida agregada, considerada de forma aislada, no resulta suficiente para discriminar de manera fiable entre ambos tipos de voz. Por si solo, los parametros del centroide segmentado no dan mucha información, no obstante, después los analizaremos todos juntos para ver si entre todos ellos en conjunto pueden proporcionar clasificaciones más robustas.
@@ -934,8 +931,8 @@ Inicialmente, se ajustó un modelo de regresión logística multivariante que in
 voces_df$gender <- ifelse(voces_df$sexo == "F", 1, 0)
 table(voces_df$gender)
 
-voces_modif<-voces_df
-voces_modif<-voces_df[-c(1,2,10)]
+variables <- c("origen","acento","duracion", "zcr", "energia_rms", "period_pitch", "centroide","gender")
+voces_modif <- voces_df[, variables]
 voces_modif$origen <- factor(voces_modif$origen)
 voces_modif$acento <- factor(voces_modif$acento)
 
@@ -946,7 +943,7 @@ summary(mod)
 par(mfrow = c(2,2))
 ```
 
-Al analizar el resumen del modelo usando la función `summary()`, se observó que las únicas variables estadísticamente significativas para la clasificación del sexo eran la frecuencia fundamental (period pitch) y el centroide, mientras que el resto de variables no aportaban evidencia significativa una vez incorporado dicho descriptor. A partir de esta observación, se decidió contrastar un modelo reducido basado exclusivamente en el pitch y centroide frente al modelo completo mediante un ANOVA, con el fin de comprobar si la complejidad adicional estaba justificada.
+Al analizar el resumen del modelo usando la función `summary()`, se observó que las únicas variables estadísticamente significativas para la clasificación del sexo eran el period pitch y el centroide, mientras que el resto de variables no aportaban evidencia significativa una vez incorporado dicho descriptor. A partir de esta observación, se decidió contrastar un modelo reducido basado exclusivamente en el pitch y centroide frente al modelo completo mediante un ANOVA, con el fin de comprobar si la complejidad adicional estaba justificada.
 
 ```{r, include=FALSE}
 mod_simple <- glm(gender ~ period_pitch+centroide, data = voces_modif, family = binomial)
@@ -966,17 +963,20 @@ summary ( mod_pred)
 (mod_pred$null.deviance - mod_pred$deviance)/mod_pred$null.deviance
 ```
 
-La bondad de ajuste del modelo se reflejó en un pseudo-R² de 0.727, lo que sugiere que aproximadamente el $72.7\%$  de la variabilidad del conjunto de entrenamiento queda explicada por el modelo basado únicamente en el period pitch. Posteriormente, se aplicó el modelo al conjunto de prueba para evaluar su capacidad predictiva.
+La bondad de ajuste del modelo se reflejó en un pseudo-R² de 0.727, lo que sugiere que aproximadamente el $72.7\%$  de la variabilidad del conjunto de entrenamiento queda explicada por el modelo basado únicamente en el period pitch y el centroide. Posteriormente, se aplicó el modelo al conjunto de prueba para evaluar su capacidad predictiva.
 
 ```{r, include=FALSE}
 pred <- predict(mod_pred, voces_modif[-train,], type = "response")
 cor(pred, voces_modif$gender[-train])
 ```
 
-La correlación entre las probabilidades predichas y las clases reales alcanzó un valor de 0.9014, evidenciando una buena concordancia entre las predicciones y las etiquetas de sexo. 
+La correlación entre las probabilidades predichas y las clases reales alcanzó un valor de 0.9014, evidenciando una buena concordancia entre las predicciones y las etiquetas de sexo. Veámoslo gráficamente:
 
-```{r, echo=FALSE}
-plot(pred, voces_modif$gender[-train], pch = 20)
+```{r, echo=FALSE,fig.cap=" Predicción vs real del sexo."}
+plot(pred, voces_modif$gender[-train], pch = 20,
+      main = "Predicción vs Real",
+      xlab = "Predicción",
+      ylab = "Real")
 ```
 
 Al observar la gráfica de predicciones, se aprecia que la mayoría de los puntos correspondientes a voces masculinas se agrupan cerca de 0, mientras que las voces femeninas se concentran alrededor de 1, lo que indica que el modelo reconoce correctamente la mayoría de los casos. Sin embargo, algunos puntos se sitúan en valores intermedios, mostrando incertidumbre en la predicción.
@@ -1286,11 +1286,8 @@ En conjunto, el boxplot indica que el ZCR contiene cierta información sobre el 
 # library(ggplot2)
 ```
 
-```{r, echo=FALSE}
-ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) +
-  geom_boxplot() +
-  labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") +
-  theme_minimal()
+```{r, echo=FALSE, fig.cap="Distribución del ZCR por Acento"}
+ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) + geom_boxplot() + labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") + theme_minimal()
 ```
 
 Dado lo visto y teniendo en cuenta que se trata de una clasificación multiclase, se planteó un modelo de regresión logística multinomial utilizando como predictores varios descriptores acústicos de bajo nivel: ZCR, la energía RMS, la duración del audio y el pitch period. Estas características se eligieron por su relación con aspectos articulatorios y prosódicos que suelen diferir entre acentos:
