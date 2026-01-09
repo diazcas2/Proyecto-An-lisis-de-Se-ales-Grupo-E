@@ -70,7 +70,7 @@ ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
 
 ## Función para detectar ruido
 ```{r}
-noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = T){
+noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = F){
   datos_ste <- ste_audio(audio, win_time, overlap, plot_result = F)
   datos_zcr <- zcr_audio(audio, win_time, overlap, plot_result = F)
   

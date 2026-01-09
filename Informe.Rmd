@@ -107,17 +107,26 @@ El procesamiento se realizó mediante la creación de ventanas temporales, divid
 
 Para cada ventana se calcularon los dos descriptores mencionados anteriormente empleando `seewave` y `tuneR`:
 
-* **Short Time Energy (STE)**: Se calculó como la suma de los cuadrados de la amplitud de la señal en cada ventana, normalizando en el intervalo $[0,1]$. Esta métrica actúa como el discriminador principal, asumiendo que los segmentos de voz presentan una energía significativamente superior frente a los ruidos de fondo o silencios.
+* **STE**: Se calculó como la suma de los cuadrados de la amplitud de la señal en cada ventana, normalizando en el intervalo $[0,1]$. Esta métrica actúa como el discriminador principal, asumiendo que los segmentos de voz presentan una energía significativamente superior frente a los ruidos de fondo o silencios.
 
-* **Zero Crossing Rate (ZCR)**: Se computó la frecuencia con la que la señal cambia de signo dentro de la ventana. Aunque el código permite su uso como criterio secundario para filtrar ruidos con alta frecuencia, en la configuración final se priorizó el criterio del STE.
+* **ZCR**: Se computó la frecuencia con la que la señal cambia de signo dentro de la ventana. Aunque el código permite su uso como criterio secundario para filtrar ruidos con alta frecuencia, en la configuración final se priorizó el criterio del STE.
 
 El criterio de decisión se estableció mediante un umbral de energía definido. Aquellos tramos con una energía normalizada inferior a $0.02$ ($2\%$ del máximo) se etiquetaron como \emph{Ruido/Silencio}, mientras que las superiores se clasificaron como \emph{Voz/Señal}. Para fijar los umbrales de STE y ZCR se observó los valores típicos normalizados que se obtenían en la mayoría de audios y se fijó a un valor en el que tan solo se perdiera la información menos relevante al eliminar los valores inferiores, dejando tan solo la parte con habla en la señal.
 
+En la imagen siguiente puede observarse un ejemplo de esta clasificación para uno de los audios. Aquellos puntos de la STE del audio que superaron el umbral fueron clasificados como parte de la señal, aquellos que no como ruido. 
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{imagenes/ruido.png}
+  \caption{Etiquetado de puntos de ruido o señal a partir de la STE normalizada.}
+  \label{fig:ruido}
+\end{figure}
+
 Finalmente, se reconstruyó la señal de audio concatenando temporalmente las muestras correspondientes a los segmentos validos, descartando los tramos de silencio y exportando el resultado limpio a la carpeta de destino para su posterior caracterización.
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, include=FALSE}
 # ZERO CROSSING RATE
-zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
+zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = FALSE){
   fs <- audio@samp.rate
   wlen <- floor(win_time*fs)
   
@@ -127,7 +136,7 @@ zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
 }
 
 # SHORT TIME ENERGY
-ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
+ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = FALSE){
   signal <- audio@left
   fs <- audio@samp.rate
   N <- length(signal)
@@ -167,12 +176,12 @@ ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
 }
 ```
 
-```{r,  eval=FALSE}
+```{r,  eval=FALSE, include=FALSE}
 # DETECCIÓN RUIDO/SILENCIO
 
-noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = T){
-  datos_ste <- ste_audio(audio, win_time, overlap, plot_result = F)
-  datos_zcr <- zcr_audio(audio, win_time, overlap, plot_result = F)
+noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = FALSE){
+  datos_ste <- ste_audio(audio, win_time, overlap, plot_result = FALSE)
+  datos_zcr <- zcr_audio(audio, win_time, overlap, plot_result = FALSE)
   
   # Sincronizar longitudes
   n_filas <- min(nrow(datos_ste), nrow(datos_zcr))
@@ -215,7 +224,7 @@ noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, 
 }
 ```
 
-```{r,  eval=FALSE}
+```{r, eval=FALSE, include=FALSE}
 # ELIMINACIÓN RUIDO/SILENCIO
 
 clean_audio <- function(audio, df_analisis) {
@@ -254,7 +263,7 @@ clean_audio <- function(audio, df_analisis) {
 }
 ```
 
-```{r,  eval=FALSE}
+```{r, eval=FALSE, include=FALSE}
 # GUARDADO DE AUDIOS LIMPIOS EN UNA NUEVA CARPETA
 
 dir_entrada <- "Audios_finales_conv"
@@ -285,6 +294,7 @@ for (ruta_archivo in archivos) {
   })
 }
 ```
+
 
 ## EXTRACCIÓN DE CARACTERÍSTICAS
 
