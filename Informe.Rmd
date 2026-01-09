@@ -113,7 +113,7 @@ Para cada ventana se calcularon los dos descriptores mencionados anteriormente e
 
 El criterio de decisión se estableció mediante un umbral de energía definido. Aquellos tramos con una energía normalizada inferior a $0.02$ ($2\%$ del máximo) se etiquetaron como \emph{Ruido/Silencio}, mientras que las superiores se clasificaron como \emph{Voz/Señal}. Para fijar los umbrales de STE y ZCR se observó los valores típicos normalizados que se obtenían en la mayoría de audios y se fijó a un valor en el que tan solo se perdiera la información menos relevante al eliminar los valores inferiores, dejando tan solo la parte con habla en la señal.
 
-En la imagen siguiente puede observarse un ejemplo de esta clasificación para uno de los audios. Aquellos puntos de la STE del audio que superaron el umbral fueron clasificados como parte de la señal, aquellos que no como ruido. 
+En la siguiente figura se muestra la clasificación para uno de los audios. Los puntos de la STE que superan el umbral corresponden a la señal, mientras que los inferiores corresponden a ruido. 
 
 \begin{figure}[h]
   \centering
