@@ -5,8 +5,8 @@ author:
 - "Florencia Pellegrini, Óscar Camacho"
 date: "2026-01-14"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 bibliography: referencias.bib
 link-citations: true
 biblio-style: IEEEtran
@@ -64,9 +64,9 @@ De manera más específica, los objetivos del trabajo son los siguientes:
 
 ### Conversión y lectura de audios
 
-Como primer paso del preprocesado, se desarrolló una función para la conversión de archivos de audio desde el formato \texttt{.m4a} al formato \texttt{.wav}, con el objetivo de unificar el tipo de señal y facilitar su posterior análisis. Para ello, se emplearon las librerías \texttt{av} y \texttt{tuneR} de \textsf{R}, que permiten la conversión y lectura de señales de audio de forma eficiente.
+Como primer paso del preprocesado, se desarrolló una función para la conversión de archivos de audio desde el formato `.m4a` al formato `.wav`, con el objetivo de unificar el tipo de señal y facilitar su posterior análisis. Para ello, se emplearon las librerías `av` y `tuneR` de R, que permiten la conversión y lectura de señales de audio de forma eficiente.
 
-La función implementada convierte cada archivo a una señal monofónica con una frecuencia de muestreo de 16 kHz y guarda los archivos resultantes en un directorio específico. Además, se automatizó el proceso para convertir de manera recursiva todos los archivos \texttt{.m4a} contenidos en una carpeta y sus subdirectorios. Los audios generados mediante voz sintética (Voz IA) no se incluyen en este proceso, ya que se encuentran originalmente en formato `.wav` y no requieren conversión adicional.
+La función implementada convierte cada archivo a una señal monofónica con una frecuencia de muestreo de 16 kHz y guarda los archivos resultantes en un directorio específico. Además, se automatizó el proceso para convertir de manera recursiva todos los archivos `.m4a` contenidos en una carpeta y sus subdirectorios. Los audios generados mediante voz sintética (Voz IA) no se incluyen en este proceso, ya que se encuentran originalmente en formato `.wav` y no requieren conversión adicional.
 
 ```{r,eval=FALSE}
 convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
@@ -105,11 +105,11 @@ Con el objetivo de mejorar la calidad de la base de datos y eliminar segmentos d
 
 El procesamiento se realizó mediante la creación de ventanas temporales, dividiendo la señal de entrada en tramos de $20$ ms con un solapamiento del $50\%$ entre ventanas consecutivas. Estos parámetros se seleccionaron para garantizar la cuasi-estacionariedad de la señal de voz, permitiendo un análisis espectral y temporal preciso sin perder continuidad en los bordes de cada tramo.
 
-Para cada ventana se calcularon los dos descriptores mencionados anteriormente empleando \texttt{seewave} y \texttt{tuneR}:
-\begin{itemize}
-    \item \textbf{Short Time Energy (STE):} Se calculó como la suma de los cuadrados de la amplitud de la señal en cada ventana, normalizando en el intervalo $[0,1]$. Esta métrica actúa como el discriminador principal, asumiendo que los segmentos de voz presentan una energía significativamente superior frente a los ruidos de fondo o silencios.
-    \item \textbf{Zero Crossing Rate (ZCR):} Se computó la frecuencia con la que la señal cambia de signo dentro de la ventana. Aunque el código permite su uso como criterio secundario para filtrar ruidos con alta frecuencia, en la configuración final se priorizó el criterio del STE.
-\end{itemize}
+Para cada ventana se calcularon los dos descriptores mencionados anteriormente empleando `seewave` y `tuneR`:
+
+* **Short Time Energy (STE)**: Se calculó como la suma de los cuadrados de la amplitud de la señal en cada ventana, normalizando en el intervalo $[0,1]$. Esta métrica actúa como el discriminador principal, asumiendo que los segmentos de voz presentan una energía significativamente superior frente a los ruidos de fondo o silencios.
+
+* **Zero Crossing Rate (ZCR)**: Se computó la frecuencia con la que la señal cambia de signo dentro de la ventana. Aunque el código permite su uso como criterio secundario para filtrar ruidos con alta frecuencia, en la configuración final se priorizó el criterio del STE.
 
 El criterio de decisión se estableció mediante un umbral de energía definido. Aquellos tramos con una energía normalizada inferior a $0.02$ ($2\%$ del máximo) se etiquetaron como \emph{Ruido/Silencio}, mientras que las superiores se clasificaron como \emph{Voz/Señal}. Para fijar los umbrales de STE y ZCR se observó los valores típicos normalizados que se obtenían en la mayoría de audios y se fijó a un valor en el que tan solo se perdiera la información menos relevante al eliminar los valores inferiores, dejando tan solo la parte con habla en la señal.
 
