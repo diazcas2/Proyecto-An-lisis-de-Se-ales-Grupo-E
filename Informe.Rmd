@@ -1287,7 +1287,11 @@ En conjunto, el boxplot indica que el ZCR contiene cierta información sobre el 
 ```
 
 ```{r, echo=FALSE, fig.cap="Distribución del ZCR por Acento"}
-ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) + geom_boxplot() + labs(title = "Distribución del ZCR por Acento", y = "Zero Crossing Rate") + theme_minimal()
+ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) + geom_boxplot() + labs(title = "Distribución del ZCR por Acento", x= 'Acento', y = "Zero Crossing Rate") + scale_fill_manual(values = c(
+    AN = "#FFE0EC",  
+    AR = "#FFB3C6",  
+    N  = "#FF6F91"   
+  )) + theme_minimal() + theme(plot.title = element_text(hjust = 0.5))
 ```
 
 Dado lo visto y teniendo en cuenta que se trata de una clasificación multiclase, se planteó un modelo de regresión logística multinomial utilizando como predictores varios descriptores acústicos de bajo nivel: ZCR, la energía RMS, la duración del audio y el pitch period. Estas características se eligieron por su relación con aspectos articulatorios y prosódicos que suelen diferir entre acentos:
@@ -1319,6 +1323,6 @@ r2_mcfadden <- as.numeric(1 - (logL_modelo / logL_nulo)) #Fórmula de McFadden: 
 print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
 ```
 
-Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos, los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento castellano neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
+Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos ($R^2_{\text{McFadden}}~$ = 0.5296), los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento castellano neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
 
 Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
