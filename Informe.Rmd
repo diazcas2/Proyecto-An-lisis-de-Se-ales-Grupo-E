@@ -12,6 +12,7 @@ bibliography: referencias.bib
 link-citations: true
 biblio-style: IEEEtran
 header-includes:
+  - \citestyle{numbers}
   - \setcitestyle{numbers,square}
 reference-section-title: "REFERENCIAS"
 ---
