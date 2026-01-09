@@ -9,6 +9,7 @@ output:
   pdf_document:
     citation_package: natbib
 =======
+  pdf_document: default
 >>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
   html_document: default
 bibliography: referencias.bib
@@ -133,6 +134,7 @@ En la siguiente figura se muestra la clasificación para uno de los audios. Los 
 Finalmente, se reconstruyó la señal de audio concatenando temporalmente las muestras correspondientes a los segmentos validos, descartando los tramos de silencio y exportando el resultado limpio a la carpeta de destino para su posterior caracterización.
 
 <<<<<<< HEAD
+```{r,eval=FALSE,include=FALSE}
 =======
 ```{r, eval=FALSE, include=FALSE}
 >>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
@@ -242,6 +244,7 @@ noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, 
 <<<<<<< HEAD
 ```{r,include=FALSE,  eval=FALSE}
 =======
+```{r, eval=FALSE, include=FALSE}
 >>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
 # ELIMINACIÓN RUIDO/SILENCIO
 
@@ -284,6 +287,7 @@ clean_audio <- function(audio, df_analisis) {
 <<<<<<< HEAD
 ```{r,include=FALSE,  eval=FALSE}
 =======
+```{r, eval=FALSE, include=FALSE}
 >>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
 # GUARDADO DE AUDIOS LIMPIOS EN UNA NUEVA CARPETA
 
