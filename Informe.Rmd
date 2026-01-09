@@ -275,11 +275,9 @@ clean_audio <- function(audio, df_analisis) {
 }
 ```
 
-<<<<<<< HEAD
 ```{r,include=FALSE,  eval=FALSE}
-=======
-```{r, eval=FALSE, include=FALSE}
->>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
+
+
 # GUARDADO DE AUDIOS LIMPIOS EN UNA NUEVA CARPETA
 
 dir_entrada <- "Audios_finales_conv"
