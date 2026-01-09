@@ -5,12 +5,8 @@ author:
 - "Florencia Pellegrini, Óscar Camacho"
 date: "2026-01-14"
 output:
-<<<<<<< HEAD
   pdf_document:
     citation_package: natbib
-=======
-  pdf_document: default
->>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
   html_document: default
 bibliography: referencias.bib
 link-citations: true
@@ -133,11 +129,9 @@ En la siguiente figura se muestra la clasificación para uno de los audios. Los 
 
 Finalmente, se reconstruyó la señal de audio concatenando temporalmente las muestras correspondientes a los segmentos validos, descartando los tramos de silencio y exportando el resultado limpio a la carpeta de destino para su posterior caracterización.
 
-<<<<<<< HEAD
-```{r,eval=FALSE,include=FALSE}
-=======
+
 ```{r, eval=FALSE, include=FALSE}
->>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
+
 # ZERO CROSSING RATE
 zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = FALSE){
   fs <- audio@samp.rate
@@ -189,11 +183,9 @@ ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = FALSE)
 }
 ```
 
-<<<<<<< HEAD
+
 ```{r,include=FALSE,  eval=FALSE}
-=======
-```{r,  eval=FALSE, include=FALSE}
->>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
+
 # DETECCIÓN RUIDO/SILENCIO
 
 noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = FALSE){
@@ -241,11 +233,10 @@ noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, 
 }
 ```
 
-<<<<<<< HEAD
+
 ```{r,include=FALSE,  eval=FALSE}
-=======
+
 ```{r, eval=FALSE, include=FALSE}
->>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
 # ELIMINACIÓN RUIDO/SILENCIO
 
 clean_audio <- function(audio, df_analisis) {
