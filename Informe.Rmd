@@ -5,8 +5,11 @@ author:
 - "Florencia Pellegrini, Óscar Camacho"
 date: "2026-01-14"
 output:
+<<<<<<< HEAD
   pdf_document:
     citation_package: natbib
+=======
+>>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
   html_document: default
 bibliography: referencias.bib
 link-citations: true
@@ -112,17 +115,29 @@ El procesamiento se realizó mediante la creación de ventanas temporales, divid
 
 Para cada ventana se calcularon los dos descriptores mencionados anteriormente empleando `seewave` y `tuneR`:
 
-* **Short Time Energy (STE)**: Se calculó como la suma de los cuadrados de la amplitud de la señal en cada ventana, normalizando en el intervalo $[0,1]$. Esta métrica actúa como el discriminador principal, asumiendo que los segmentos de voz presentan una energía significativamente superior frente a los ruidos de fondo o silencios.
+* **STE**: Se calculó como la suma de los cuadrados de la amplitud de la señal en cada ventana, normalizando en el intervalo $[0,1]$. Esta métrica actúa como el discriminador principal, asumiendo que los segmentos de voz presentan una energía significativamente superior frente a los ruidos de fondo o silencios.
 
-* **Zero Crossing Rate (ZCR)**: Se computó la frecuencia con la que la señal cambia de signo dentro de la ventana. Aunque el código permite su uso como criterio secundario para filtrar ruidos con alta frecuencia, en la configuración final se priorizó el criterio del STE.
+* **ZCR**: Se computó la frecuencia con la que la señal cambia de signo dentro de la ventana. Aunque el código permite su uso como criterio secundario para filtrar ruidos con alta frecuencia, en la configuración final se priorizó el criterio del STE.
 
 El criterio de decisión se estableció mediante un umbral de energía definido. Aquellos tramos con una energía normalizada inferior a $0.02$ ($2\%$ del máximo) se etiquetaron como \emph{Ruido/Silencio}, mientras que las superiores se clasificaron como \emph{Voz/Señal}. Para fijar los umbrales de STE y ZCR se observó los valores típicos normalizados que se obtenían en la mayoría de audios y se fijó a un valor en el que tan solo se perdiera la información menos relevante al eliminar los valores inferiores, dejando tan solo la parte con habla en la señal.
 
+En la siguiente figura se muestra la clasificación para uno de los audios. Los puntos de la STE que superan el umbral corresponden a la señal, mientras que los inferiores corresponden a ruido. 
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\textwidth]{imagenes/ruido.png}
+  \caption{Etiquetado de puntos de ruido o señal a partir de la STE normalizada.}
+  \label{fig:ruido}
+\end{figure}
+
 Finalmente, se reconstruyó la señal de audio concatenando temporalmente las muestras correspondientes a los segmentos validos, descartando los tramos de silencio y exportando el resultado limpio a la carpeta de destino para su posterior caracterización.
 
-```{r,include=FALSE, eval=FALSE}
+<<<<<<< HEAD
+=======
+```{r, eval=FALSE, include=FALSE}
+>>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
 # ZERO CROSSING RATE
-zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
+zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = FALSE){
   fs <- audio@samp.rate
   wlen <- floor(win_time*fs)
   
@@ -132,7 +147,7 @@ zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
 }
 
 # SHORT TIME ENERGY
-ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
+ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = FALSE){
   signal <- audio@left
   fs <- audio@samp.rate
   N <- length(signal)
@@ -172,12 +187,16 @@ ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
 }
 ```
 
+<<<<<<< HEAD
 ```{r,include=FALSE,  eval=FALSE}
+=======
+```{r,  eval=FALSE, include=FALSE}
+>>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
 # DETECCIÓN RUIDO/SILENCIO
 
-noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = T){
-  datos_ste <- ste_audio(audio, win_time, overlap, plot_result = F)
-  datos_zcr <- zcr_audio(audio, win_time, overlap, plot_result = F)
+noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = FALSE){
+  datos_ste <- ste_audio(audio, win_time, overlap, plot_result = FALSE)
+  datos_zcr <- zcr_audio(audio, win_time, overlap, plot_result = FALSE)
   
   # Sincronizar longitudes
   n_filas <- min(nrow(datos_ste), nrow(datos_zcr))
@@ -220,7 +239,10 @@ noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, 
 }
 ```
 
+<<<<<<< HEAD
 ```{r,include=FALSE,  eval=FALSE}
+=======
+>>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
 # ELIMINACIÓN RUIDO/SILENCIO
 
 clean_audio <- function(audio, df_analisis) {
@@ -259,7 +281,10 @@ clean_audio <- function(audio, df_analisis) {
 }
 ```
 
+<<<<<<< HEAD
 ```{r,include=FALSE,  eval=FALSE}
+=======
+>>>>>>> d451dfcf890b59ccd49cf984f1880bccb4ef2b02
 # GUARDADO DE AUDIOS LIMPIOS EN UNA NUEVA CARPETA
 
 dir_entrada <- "Audios_finales_conv"
@@ -291,19 +316,16 @@ for (ruta_archivo in archivos) {
 }
 ```
 
+
 ## EXTRACCIÓN DE CARACTERÍSTICAS
 
-Las señales de voz contienen mucha información, pero trabajar directamente con el audio no resulta práctico para entrenar modelos de clasificación. Por ello, es necesario extraer una serie de características numéricas que describan la señal de forma más simple y manejable.
-
-La extracción de características permite resumir aspectos importantes de la voz, como su tono, su energía o cómo se distribuye el sonido en distintas frecuencias. De esta manera, cada audio puede representarse mediante un conjunto de valores que capturan sus propiedades principales, evitando depender de la duración del archivo o de pequeñas variaciones que no aportan información relevante.
-
-Estas características sirven como base para entrenar los modelos utilizados en el proyecto, ya que facilitan la comparación entre distintas voces y permiten identificar patrones asociados a diferentes tipos de hablantes o señales. Gracias a este proceso, es posible abordar tareas de clasificación como la identificación del sexo, el acento o la distinción entre voces humanas y generadas por inteligencia artificial.
+Para el tratamiento de señales de voz en modelos de clasificación, no resulta adecuado trabajar directamente con la señal de audio, ya que estos modelos requieren datos numéricos estructurados. Por este motivo, se lleva a cabo un proceso de extracción de características que permite representar la información relevante de la señal de forma numérica. Dichas características se emplearán posteriormente para el entrenamiento de los modelos.
 
 ### Period pitch
 
 El *period pitch* está directamente relacionado con la frecuencia fundamental de la voz, que corresponde a la vibración periódica más baja producida por las cuerdas vocales y constituye la base sobre la que se construyen el resto de componentes armónicos del habla. La frecuencia fundamental es especialmente relevante porque representa una característica estable de la voz y está estrechamente vinculada a la percepción de si una voz suena más grave o más aguda.
 
-El period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
+Así pues, el period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
 
 De acuerdo con la literatura consultada, los valores típicos de frecuencia fundamental en voz humana se sitúan aproximadamente en el rango comprendido entre 85 y 260 Hz, presentando diferencias claras entre hombres y mujeres (\citep{rabiner1978digital} y \citep{basu2020pitch}). 
 
@@ -597,7 +619,9 @@ df_carpeta <- function(df, carpeta) {
 voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
 ```
 
-### Conjunto de datos para detección de IA: MFCC
+### Conjunto de datos para detección de IA: 
+
+#### MFCC
 
 Para cada archivo de audio se aplicó un preprocesado común con el objetivo de asegurar la comparabilidad entre señales. En concreto, se convirtió cada audio a mono mediante la función `to_mono()`, promediando los canales izquierdo y derecho en caso de que la señal fuese estéreo. Después, se homogeneizó la frecuencia de muestreo a un valor fijo (16 kHz) mediante la función `resample_if_needed()`, ya que el cálculo de MFCC depende directamente de la escala de frecuencias y no es comparable si los audios están a distintas tasas de muestreo.
 
@@ -819,7 +843,7 @@ bad_rows <- apply(df_ml %>% select(-label), 1, function(r) any(is_bad(r)))
 train_df <- df_ml[!bad_rows, ]
 ```
 
-### Conjuntos de datos para detección de IA: Centroide espectral
+#### Centroide espectral
 
 También se generaron dos conjuntos de datos específicos basados en el centroide espectral. El primero de ellos contiene, para cada señal, las etiquetas de sexo, origen y acento junto con el valor del centroide espectral global, calculado sobre la totalidad del audio. El segundo conjunto de datos incluye las mismas etiquetas y una representación temporal del centroide espectral, obtenida mediante la segmentación de cada señal en doce partes, junto con una medida agregada de su variabilidad, calculada como la desviación típica de los doce centroides.
 
@@ -1315,11 +1339,7 @@ mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch, dat
 summary(mod_acento)
 ```
 
-Para evaluar la capacidad explicativa del modelo se utilizó el pseudo-$R^2$ de McFadden. En regresión logística el $R^2$ clásico no es adecuado porque no existe una descomposición de la varianza análoga a la de la regresión lineal, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, y se define como
-
-$$R^2_{\text{McFadden}} \;=\; 1 - \frac{\log L_{\text{modelo}}}{\log L_{\text{nulo}}}$$
-
-donde $\log L_{\text{modelo}}$ es la log-verosimilitud del modelo completo (con los predictores ZCR, energía RMS, duración y periodo de pitch) y $\log L_{\text{nulo}}$ la de un modelo que solo incluye el intercepto. Valores más altos de $R^2_{\text{McFadden}}~$ indican que el modelo con predictores mejora de forma apreciable la explicación de los datos frente al modelo nulo, mientras que valores cercanos a cero sugieren que las variables empleadas apenas añaden capacidad discriminativa entre acentos.
+Para evaluar la capacidad explicativa del modelo se utilizó el pseudo-$R^2$ de McFadden. En regresión logística el $R^2$ clásico no es adecuado porque no existe una descomposición de la varianza análoga a la de la regresión lineal, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, que solo incluye el intercepto. Valores más altos de $R^2_{\text{McFadden}}~$ indican que el modelo con predictores mejora de forma apreciable la explicación de los datos frente al modelo nulo, mientras que valores cercanos a cero sugieren que las variables empleadas apenas añaden capacidad discriminativa entre acentos.
 
 ```{r, include=FALSE}
 logL_modelo <- logLik(mod_acento)
