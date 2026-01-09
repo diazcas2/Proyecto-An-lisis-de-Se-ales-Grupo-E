@@ -1307,11 +1307,7 @@ mod_acento <- multinom(acento ~ zcr + energia_rms + duracion + period_pitch, dat
 summary(mod_acento)
 ```
 
-Para evaluar la capacidad explicativa del modelo se utilizó el pseudo-$R^2$ de McFadden. En regresión logística el $R^2$ clásico no es adecuado porque no existe una descomposición de la varianza análoga a la de la regresión lineal, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, y se define como
-
-$$R^2_{\text{McFadden}} \;=\; 1 - \frac{\log L_{\text{modelo}}}{\log L_{\text{nulo}}}$$
-
-donde $\log L_{\text{modelo}}$ es la log-verosimilitud del modelo completo (con los predictores ZCR, energía RMS, duración y periodo de pitch) y $\log L_{\text{nulo}}$ la de un modelo que solo incluye el intercepto. Valores más altos de $R^2_{\text{McFadden}}~$ indican que el modelo con predictores mejora de forma apreciable la explicación de los datos frente al modelo nulo, mientras que valores cercanos a cero sugieren que las variables empleadas apenas añaden capacidad discriminativa entre acentos.
+Para evaluar la capacidad explicativa del modelo se utilizó el pseudo-$R^2$ de McFadden. En regresión logística el $R^2$ clásico no es adecuado porque no existe una descomposición de la varianza análoga a la de la regresión lineal, y por ello se recurre a índices basados en la verosimilitud. El pseudo-$R^2$ de McFadden es uno de los más utilizados porque compara de forma directa el modelo con predictores frente a un modelo nulo, que solo incluye el intercepto. Valores más altos de $R^2_{\text{McFadden}}~$ indican que el modelo con predictores mejora de forma apreciable la explicación de los datos frente al modelo nulo, mientras que valores cercanos a cero sugieren que las variables empleadas apenas añaden capacidad discriminativa entre acentos.
 
 ```{r, include=FALSE}
 logL_modelo <- logLik(mod_acento)
