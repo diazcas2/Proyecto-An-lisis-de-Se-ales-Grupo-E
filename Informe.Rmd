@@ -5,8 +5,8 @@ author:
 - "Florencia Pellegrini, Óscar Camacho"
 date: "2026-01-14"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 bibliography: referencias.bib
 link-citations: true
 biblio-style: IEEEtran
@@ -288,17 +288,13 @@ for (ruta_archivo in archivos) {
 
 ## EXTRACCIÓN DE CARACTERÍSTICAS
 
-Las señales de voz contienen mucha información, pero trabajar directamente con el audio no resulta práctico para entrenar modelos de clasificación. Por ello, es necesario extraer una serie de características numéricas que describan la señal de forma más simple y manejable.
-
-La extracción de características permite resumir aspectos importantes de la voz, como su tono, su energía o cómo se distribuye el sonido en distintas frecuencias. De esta manera, cada audio puede representarse mediante un conjunto de valores que capturan sus propiedades principales, evitando depender de la duración del archivo o de pequeñas variaciones que no aportan información relevante.
-
-Estas características sirven como base para entrenar los modelos utilizados en el proyecto, ya que facilitan la comparación entre distintas voces y permiten identificar patrones asociados a diferentes tipos de hablantes o señales. Gracias a este proceso, es posible abordar tareas de clasificación como la identificación del sexo, el acento o la distinción entre voces humanas y generadas por inteligencia artificial.
+Para el tratamiento de señales de voz en modelos de clasificación, no resulta adecuado trabajar directamente con la señal de audio, ya que estos modelos requieren datos numéricos estructurados. Por este motivo, se lleva a cabo un proceso de extracción de características que permite representar la información relevante de la señal de forma numérica. Dichas características se emplearán posteriormente para el entrenamiento de los modelos.
 
 ### Period pitch
 
 El *period pitch* está directamente relacionado con la frecuencia fundamental de la voz, que corresponde a la vibración periódica más baja producida por las cuerdas vocales y constituye la base sobre la que se construyen el resto de componentes armónicos del habla. La frecuencia fundamental es especialmente relevante porque representa una característica estable de la voz y está estrechamente vinculada a la percepción de si una voz suena más grave o más aguda.
 
-El period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
+Así pues, el period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
 
 De acuerdo con la literatura consultada, los valores típicos de frecuencia fundamental en voz humana se sitúan aproximadamente en el rango comprendido entre 85 y 260 Hz, presentando diferencias claras entre hombres y mujeres ([@rabiner1978digital] y [@basu2020pitch]). 
 
@@ -591,7 +587,9 @@ df_carpeta <- function(df, carpeta) {
 voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
 ```
 
-### Conjunto de datos para detección de IA: MFCC
+### Conjunto de datos para detección de IA: 
+
+#### MFCC
 
 Para cada archivo de audio se aplicó un preprocesado común con el objetivo de asegurar la comparabilidad entre señales. En concreto, se convirtió cada audio a mono mediante la función `to_mono()`, promediando los canales izquierdo y derecho en caso de que la señal fuese estéreo. Después, se homogeneizó la frecuencia de muestreo a un valor fijo (16 kHz) mediante la función `resample_if_needed()`, ya que el cálculo de MFCC depende directamente de la escala de frecuencias y no es comparable si los audios están a distintas tasas de muestreo.
 
@@ -813,7 +811,7 @@ bad_rows <- apply(df_ml %>% select(-label), 1, function(r) any(is_bad(r)))
 train_df <- df_ml[!bad_rows, ]
 ```
 
-### Conjuntos de datos para detección de IA: Centroide espectral
+#### Centroide espectral
 
 También se generaron dos conjuntos de datos específicos basados en el centroide espectral. El primero de ellos contiene, para cada señal, las etiquetas de sexo, origen y acento junto con el valor del centroide espectral global, calculado sobre la totalidad del audio. El segundo conjunto de datos incluye las mismas etiquetas y una representación temporal del centroide espectral, obtenida mediante la segmentación de cada señal en doce partes, junto con una medida agregada de su variabilidad, calculada como la desviación típica de los doce centroides.
 
