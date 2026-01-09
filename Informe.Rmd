@@ -12,7 +12,6 @@ bibliography: referencias.bib
 link-citations: true
 biblio-style: IEEEtran
 header-includes:
-  - \citestyle{numbers}
   - \setcitestyle{numbers,square}
 reference-section-title: "REFERENCIAS"
 ---
@@ -392,6 +391,7 @@ Además se calculan $\Delta$ y $\Delta\Delta$ son las derivadas temporales de lo
 
 #### Centroide espectral global
 
+
 Con el objetivo de caracterizar la distribución de la energía en el dominio de la frecuencia, se calculó el centroide espectral global de cada señal de voz. Este descriptor puede interpretarse como el “centro de gravedad” del espectro, ya que corresponde a la media de las frecuencias ponderada por su energía, de modo que valores más elevados indican una mayor concentración de energía en frecuencias altas. Previamente a su cálculo, se eliminó el valor medio de la señal, correspondiente a la componente de continua, ya que su presencia introduce un componente espectral en 0 Hz que no aporta información acústica relevante y puede sesgar artificialmente el centroide hacia bajas frecuencias.
 
 De esta forma, el centroide se obtiene a partir del espectro de potencia calculado mediante la transformada rápida de Fourier, considerando únicamente las componentes de frecuencia positivas. De este modo, cada señal queda representada por un único valor que resume su contenido espectral global.
@@ -422,6 +422,7 @@ spectral_centroid <- function(w) {
 
 
 #### Segmentación temporal en 12 partes
+
 
 Con el fin de capturar información espectral a lo largo del tiempo, se desarrolló una segunda función que divide cada señal de audio en doce segmentos temporales consecutivos de igual duración. Para cada uno de estos segmentos se calcula de forma independiente el centroide espectral siguiendo el mismo procedimiento que en el caso global. Esta estrategia permite representar cada audio mediante un vector de doce valores, cada uno correspondiente a un segmento temporal distinto, describiendo así la evolución del centroide espectral a lo largo de la señal. 
 
@@ -526,67 +527,79 @@ voces_df <- data.frame(
   duracion = numeric(),
   zcr = numeric(),
   energia_rms = numeric(),
-  pitch = numeric(),
+  period_pitch = numeric(),
   centroide = numeric(),
-  centroide_12 = I(list()),
+  centroide_1 = numeric(), centroide_2 = numeric(), centroide_3 = numeric(),
+  centroide_4 = numeric(), centroide_5 = numeric(), centroide_6 = numeric(),
+  centroide_7 = numeric(), centroide_8 = numeric(), centroide_9 = numeric(),
+  centroide_10 = numeric(), centroide_11 = numeric(), centroide_12 = numeric(),
+  centroide_sd12 = numeric(),
   stringsAsFactors = FALSE
 )
 
-
 añadir_voz <- function(df, ruta_wav) {
-  
-  # Leemos el audio
+
   audio <- readWave(ruta_wav)
   fs <- audio@samp.rate
   señal_audio <- audio@left
-  
-  # Duración
+
   duracion <- length(señal_audio) / fs
-  
-  # Zero Crossing Rate
- zcr <- mean(zcr(señal_audio, f = fs,plot = F))
-  
-  # Energía RMS
+  zcr_val <- mean(zcr(señal_audio, f = fs, plot = FALSE))
   energia_rms <- sqrt(mean(señal_audio^2))
-  
-  # Etiquetado 
+
   nombre_archivo <- tolower(basename(ruta_wav))
   nombre_archivo <- gsub("\\s+", "", nombre_archivo)
 
   etiquetas <- etiquetar_por_nombre(nombre_archivo, reglas_nombres)
-
   sexo <- etiquetas$sexo
   origen <- etiquetas$origen
-  acento<-etiquetas$acento
-  
-  #PERIOD PITCH:
+  acento <- etiquetas$acento
+
   pitch_res <- period_pitch(audio)
   pitch <- pitch_res$pitch
-  
-  #Centroide:
+
+  # Centroide global
   spec_centroid <- spectral_centroid(audio)
+
+  # 12 centroides (vector numérico longitud 12)
   spec_centroid_12 <- spectral_centroid_12(audio)
-  
-  # Nueva fila
+
+  # Asegurar longitud 12 (por si acaso) y calcular sd
+  if (length(spec_centroid_12) != 12) {
+    tmp <- rep(NA_real_, 12)
+    tmp[seq_len(min(12, length(spec_centroid_12)))] <- spec_centroid_12[seq_len(min(12, length(spec_centroid_12)))]
+    spec_centroid_12 <- tmp
+  }
+  sd12 <- sd(spec_centroid_12, na.rm = TRUE)
+
   nueva_fila <- data.frame(
     señal = basename(ruta_wav),
     sexo = sexo,
-    origen=origen,
+    origen = origen,
     acento = acento,
     duracion = duracion,
-    zcr = zcr,
+    zcr = zcr_val,
     energia_rms = energia_rms,
     period_pitch = pitch,
     centroide = spec_centroid,
-    centroide_12 = I(list(spec_centroid_12)),
+    centroide_1 = spec_centroid_12[1],
+    centroide_2 = spec_centroid_12[2],
+    centroide_3 = spec_centroid_12[3],
+    centroide_4 = spec_centroid_12[4],
+    centroide_5 = spec_centroid_12[5],
+    centroide_6 = spec_centroid_12[6],
+    centroide_7 = spec_centroid_12[7],
+    centroide_8 = spec_centroid_12[8],
+    centroide_9 = spec_centroid_12[9],
+    centroide_10 = spec_centroid_12[10],
+    centroide_11 = spec_centroid_12[11],
+    centroide_12 = spec_centroid_12[12],
+    centroide_sd12 = sd12,
     stringsAsFactors = FALSE
   )
-  
-  df <- rbind(df, nueva_fila)
-  return(df)
+
+  rbind(df, nueva_fila)
 }
-
-
 ```
 
 Cabe destacar que todas las características consideradas en el conjunto de datos están definidas como medias o medidas normalizadas respecto a la longitud de la señal, de modo que no dependen de la duración total del audio. En consecuencia, el proceso de eliminación de silencios únicamente reduce las regiones no informativas de la señal, sin afectar a la coherencia ni a la comparabilidad de las características extraídas entre distintos audios.
@@ -614,9 +627,7 @@ df_carpeta <- function(df, carpeta) {
 voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
 ```
 
-### Conjunto de datos para detección de IA: 
-
-#### MFCC
+### Conjunto de datos para detección de IA: MFCC
 
 Para cada archivo de audio se aplicó un preprocesado común con el objetivo de asegurar la comparabilidad entre señales. En concreto, se convirtió cada audio a mono mediante la función `to_mono()`, promediando los canales izquierdo y derecho en caso de que la señal fuese estéreo. Después, se homogeneizó la frecuencia de muestreo a un valor fijo (16 kHz) mediante la función `resample_if_needed()`, ya que el cálculo de MFCC depende directamente de la escala de frecuencias y no es comparable si los audios están a distintas tasas de muestreo.
 
@@ -838,42 +849,6 @@ bad_rows <- apply(df_ml %>% select(-label), 1, function(r) any(is_bad(r)))
 train_df <- df_ml[!bad_rows, ]
 ```
 
-#### Centroide espectral
-
-También se generaron dos conjuntos de datos específicos basados en el centroide espectral. El primero de ellos contiene, para cada señal, las etiquetas de sexo, origen y acento junto con el valor del centroide espectral global, calculado sobre la totalidad del audio. El segundo conjunto de datos incluye las mismas etiquetas y una representación temporal del centroide espectral, obtenida mediante la segmentación de cada señal en doce partes, junto con una medida agregada de su variabilidad, calculada como la desviación típica de los doce centroides.
-
-Esto lo utilizaremos posteriormente para ver como funciona esta característica a la hora de clasificar IA-humano.
-
-```{r, echo = FALSE}
-# DataFrame con centroide global
-
-carpeta_audios <- "Audios_finales_limp"
-
-df_centroid_global <- voces_df[, c("señal", "sexo", "origen", "acento")]
-df_centroid_global$centroid_global <- sapply(df_centroid_global$señal, function(nombre) {
-  w <- readWave(file.path(carpeta_audios, nombre))
-  spectral_centroid(w)
-})
-
-# DataFrame con centroide segmentado en 12 partes
-
-centroid12_mat <- t(sapply(voces_df$señal, function(nombre) {
-  w <- readWave(file.path(carpeta_audios, nombre))
-  spectral_centroid_12(w, n_parts = 12)
-}))
-
-colnames(centroid12_mat) <- paste0("centroid_", 1:12)
-
-df_centroid_12 <- cbind(
-  voces_df[, c("señal", "sexo", "origen", "acento")],
-  as.data.frame(centroid12_mat)
-)
-
-df_centroid_12$centroid_sd12 <- apply(centroid12_mat, 1, sd, na.rm = TRUE)
-
-```
-
-
 ## ANÁLISIS EXPLORATORIO
 
 Antes de aplicar los métodos de clasificación, se realizó un análisis exploratorio del conjunto de datos con el objetivo de comprender la distribución de las variables y detectar posibles patrones relevantes. Así, el conjunto de datos final está compuesto por 466 audios, con una distribución equilibrada entre voces femeninas (240) y masculinas (226), lo que reduce la posibilidad de sesgos derivados del desbalanceo de clases.
@@ -935,8 +910,8 @@ round(cor(vars_num, use = "complete.obs"), 2)
 En cuanto al centroide espectral global, se observa una diferencia clara entre las voces humanas y las generadas por inteligencia artificial, tanto en el grupo masculino como en el femenino. En ambos casos, las voces generadas por IA presentan valores de centroide más elevados, lo que indica una mayor concentración de energía en frecuencias altas. Esta diferencia es especialmente marcada en las voces masculinas, donde el solapamiento entre clases es reducido. En el caso de las voces femeninas, aunque la tendencia se mantiene, se aprecia un mayor solapamiento entre ambas distribuciones.
 
 ```{r, echo = FALSE}
-boxplot(centroid_global ~ origen + sexo,
-        data = df_centroid_global,
+boxplot(centroide ~ origen + sexo,
+        data = voces_df,
         main = "Centroide espectral: Humano vs IA (por sexo)",
         xlab = "Sexo y origen",
         ylab = "Centroide espectral (Hz)")
@@ -1100,7 +1075,7 @@ Las matrices de confusión del modelo con el centroide global son las siguientes
 ```{r, echo = FALSE}
 rf_by_sex <- function(df, sex_value, seed = 123, train_prop = 0.7) {
   d <- subset(df, sexo == sex_value)
-  d <- d[is.finite(d$centroid_global) & !is.na(d$origen), ]
+  d <- d[is.finite(d$centroide) & !is.na(d$origen), ]
   d$origen <- factor(d$origen)   # niveles: IA / P (o lo que tengas)
 
   set.seed(seed)
@@ -1108,7 +1083,7 @@ rf_by_sex <- function(df, sex_value, seed = 123, train_prop = 0.7) {
   train <- d[idx, ]
   test  <- d[-idx, ]
 
-  rf <- randomForest(origen ~ centroid_global, data = train)
+  rf <- randomForest(origen ~ centroide, data = train)
 
   pred <- predict(rf, newdata = test)
   conf <- table(Real = test$origen, Pred = pred)
@@ -1124,8 +1099,8 @@ rf_by_sex <- function(df, sex_value, seed = 123, train_prop = 0.7) {
 
 
 ```{r, echo = FALSE}
-rf_M <- rf_by_sex(df_centroid_global, "M")
-rf_F <- rf_by_sex(df_centroid_global, "F")
+rf_M <- rf_by_sex(voces_df, "M")
+rf_F <- rf_by_sex(voces_df, "F")
 
 conf_M <- rf_M$confusion
 conf_F <- rf_F$confusion
@@ -1148,7 +1123,7 @@ El modelo de random forest entrenado únicamente con el centroide espectral glob
 rf_by_sex_centroid12_sd <- function(df, sex_value, seed = 123, train_prop = 0.7) {
   d <- subset(df, sexo == sex_value)
 
-  feature_cols <- c(paste0("centroid_", 1:12), "centroid_sd12")
+  feature_cols <- c(paste0("centroide_", 1:12), "centroide_sd12")
 
   # quedarnos con filas válidas
   d <- d[complete.cases(d[, feature_cols]) & !is.na(d$origen), ]
@@ -1178,8 +1153,8 @@ rf_by_sex_centroid12_sd <- function(df, sex_value, seed = 123, train_prop = 0.7)
 ```
 
 ```{r, echo = FALSE}
-rf12sd_M <- rf_by_sex_centroid12_sd(df_centroid_12, "M") 
-rf12sd_F <- rf_by_sex_centroid12_sd(df_centroid_12, "F")
+rf12sd_M <- rf_by_sex_centroid12_sd(voces_df, "M") 
+rf12sd_F <- rf_by_sex_centroid12_sd(voces_df, "F")
 
 conf_M <- rf12sd_M$confusion
 conf_F <- rf12sd_F$confusion
@@ -1325,7 +1300,7 @@ En conjunto, estas variables, permiten modelar tanto aspectos segmentales (conte
 
 ```{r, include=FALSE}
 #install.packages("nnet")
-#library(nnet)
+library(nnet)
 
 voces_modif$acento <- as.factor(voces_modif$acento)
 
