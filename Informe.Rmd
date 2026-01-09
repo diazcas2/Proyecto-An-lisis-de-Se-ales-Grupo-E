@@ -5,11 +5,16 @@ author:
 - "Florencia Pellegrini, Óscar Camacho"
 date: "2026-01-14"
 output:
+  pdf_document:
+    citation_package: natbib
   html_document: default
-  pdf_document: default
 bibliography: referencias.bib
 link-citations: true
 biblio-style: IEEEtran
+header-includes:
+  - \citestyle{numbers}
+  - \setcitestyle{numbers,square}
+reference-section-title: "REFERENCIAS"
 ---
 
 ```{r setup, include=FALSE}
@@ -68,7 +73,7 @@ Como primer paso del preprocesado, se desarrolló una función para la conversi�
 
 La función implementada convierte cada archivo a una señal monofónica con una frecuencia de muestreo de 16 kHz y guarda los archivos resultantes en un directorio específico. Además, se automatizó el proceso para convertir de manera recursiva todos los archivos `.m4a` contenidos en una carpeta y sus subdirectorios. Los audios generados mediante voz sintética (Voz IA) no se incluyen en este proceso, ya que se encuentran originalmente en formato `.wav` y no requieren conversión adicional.
 
-```{r,eval=FALSE}
+```{r,include=FALSE,eval=FALSE}
 convertir_m4a_a_wave <- function(input_m4a, sample_rate = 16000) {
  #Creamos la carpeta donde guardaremos los audios.
   dir.create("Audios_finales_conv", showWarnings = FALSE) 
@@ -115,7 +120,7 @@ El criterio de decisión se estableció mediante un umbral de energía definido.
 
 Finalmente, se reconstruyó la señal de audio concatenando temporalmente las muestras correspondientes a los segmentos validos, descartando los tramos de silencio y exportando el resultado limpio a la carpeta de destino para su posterior caracterización.
 
-```{r, eval=FALSE}
+```{r,include=FALSE, eval=FALSE}
 # ZERO CROSSING RATE
 zcr_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
   fs <- audio@samp.rate
@@ -167,7 +172,7 @@ ste_audio <- function(audio, win_time = 0.02, overlap = 50, plot_result = F){
 }
 ```
 
-```{r,  eval=FALSE}
+```{r,include=FALSE,  eval=FALSE}
 # DETECCIÓN RUIDO/SILENCIO
 
 noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, umbral_ste = 0.02, plot_result = T){
@@ -215,7 +220,7 @@ noise_audio <- function(audio, win_time = 0.02, overlap = 50, umbral_zcr = 0.5, 
 }
 ```
 
-```{r,  eval=FALSE}
+```{r,include=FALSE,  eval=FALSE}
 # ELIMINACIÓN RUIDO/SILENCIO
 
 clean_audio <- function(audio, df_analisis) {
@@ -254,7 +259,7 @@ clean_audio <- function(audio, df_analisis) {
 }
 ```
 
-```{r,  eval=FALSE}
+```{r,include=FALSE,  eval=FALSE}
 # GUARDADO DE AUDIOS LIMPIOS EN UNA NUEVA CARPETA
 
 dir_entrada <- "Audios_finales_conv"
@@ -300,7 +305,7 @@ El *period pitch* está directamente relacionado con la frecuencia fundamental d
 
 El period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
 
-De acuerdo con la literatura consultada, los valores típicos de frecuencia fundamental en voz humana se sitúan aproximadamente en el rango comprendido entre 85 y 260 Hz, presentando diferencias claras entre hombres y mujeres ([@rabiner1978digital] y [@basu2020pitch]). 
+De acuerdo con la literatura consultada, los valores típicos de frecuencia fundamental en voz humana se sitúan aproximadamente en el rango comprendido entre 85 y 260 Hz, presentando diferencias claras entre hombres y mujeres (\citep{rabiner1978digital} y \citep{basu2020pitch}). 
 
 A partir de estos rangos reportados, se definieron umbrales prácticos para la clasificación del sexo. Con el fin de evitar clasificaciones forzadas en las zonas de solapamiento entre ambos grupos, se estableció una región intermedia de indeterminación. De este modo, se consideraron voces masculinas aquellas con frecuencias fundamentales inferiores a 170 Hz, voces femeninas aquellas con valores superiores a 180Hz y como indeterminadas aquellas comprendidas entre ambos umbrales.
 
@@ -358,11 +363,12 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
 
 ### Coeficientes Mel (MFCC) y representación de la señal
 
-Como parte de la extracción de características espectrales, se calcularon los coeficientes cepstrales en escala Mel (MFCC), ampliamente utilizados en tareas de análisis de voz por su capacidad de capturar información relacionada con el timbre y la envolvente espectral. Para ello, se aplicó el procedimiento estándar por ventanas cortas: se dividió cada audio en tramas solapadas (ventana de 25 ms y salto de 10 ms), se realizó la transformada rápida de Fourier (FFT) por trama y se obtuvo el espectro de potencia. Posteriormente, dicho espectro se proyectó sobre un banco de filtros en escala Mel (40 bandas), se aplicó una compresión logarítmica y, finalmente, una transformada discreta del coseno (DCT) para obtener un conjunto compacto de coeficientes (12 MFCC por trama). Adicionalmente, se aplicó un pre-énfasis para compensar la caída de energía en altas frecuencias típica de señales de voz.
+Como parte de la extracción de características espectrales, se calcularon los coeficientes cepstrales en escala Mel (MFCC), ampliamente utilizados en tareas de análisis de voz por su capacidad de capturar información relacionada con el timbre y la envolvente espectral. Los MFCC (coeficientes Mel) son características que resumen el timbre de la voz a partir de su espectro, usando una escala de frecuencias similar a la percepción humana (escala Mel). 
 
-Con el fin de incorporar información dinámica, se calcularon también las derivadas temporales de primer orden ($\Delta$) y segundo orden ($\Delta\Delta$), que aproximan respectivamente la \emph{velocidad} y la \emph{aceleración} de los MFCC a lo largo del tiempo. 
+En el código, para calcular estos coeficientes, se usa la función `melfcc()` de la libreria `tuneR`. Esta función divide la señal en ventanas temporales solapadas de duración 25 ms con un salto 10 ms. Para cada ventana se obtiene el espectro (vía FFT), se proyecta sobre un banco de filtros Mel con 40 bandas, se aplica compresión logarítmica y posteriormente una transformación tipo DCT para obtener un número reducido de coeficientes. En este caso se conservan 12 coeficientes por ventana.
 
-Para adaptar esta representación por tramas a modelos clásicos de aprendizaje automático, cada audio se transformó en un único vector de características agregando estadísticas globales: media y desviación típica de los MFCC, así como de sus derivadas $\Delta$ y $\Delta\Delta$. De este modo, cada clip queda representado por un vector fijo que resume tanto el contenido espectral promedio como su variabilidad temporal.
+Además se calculan $\Delta$ y $\Delta\Delta$ son las derivadas temporales de los MFCC: $\Delta$ mide cómo cambian de un frame al siguiente (dinámica) y $\Delta\Delta$ mide el cambio de ese cambio.
+
 
 
 ### Centroide espectral
@@ -595,7 +601,7 @@ voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
 
 Para cada archivo de audio se aplicó un preprocesado común con el objetivo de asegurar la comparabilidad entre señales. En concreto, se convirtió cada audio a mono mediante la función `to_mono()`, promediando los canales izquierdo y derecho en caso de que la señal fuese estéreo. Después, se homogeneizó la frecuencia de muestreo a un valor fijo (16 kHz) mediante la función `resample_if_needed()`, ya que el cálculo de MFCC depende directamente de la escala de frecuencias y no es comparable si los audios están a distintas tasas de muestreo.
 
-```{r,include=FALSE}
+```{r,include=FALSE,eval=FALSE}
 
 # calcula un canal mono como el promedio de los canales izquierdo y derecho
 to_mono <- function(w) {
@@ -628,7 +634,7 @@ resample_if_needed <- function(w, target_sr = 16000) {
 ```
 
 
-Una vez normalizada la señal, se extrajeron los coeficientes MFCC utilizando una configuración fija de ventanas temporales (duración de ventana y salto constantes) y un número determinado de coeficientes cepstrales, para ello se uso la función `mefcc()` de la librería `tuneR`. Dado que los MFCC se calculan por frames y generan una matriz temporal, se incorporó además información dinámica calculando las derivadas temporales: ($\Delta$) (delta) y ($\Delta\Delta$) (delta-delta), mediante la función `delta_simple()`, capturando así los cambios espectrales a lo largo del tiempo.
+Una vez normalizada la señal, se extrajeron los coeficientes MFCC utilizando una configuración fija de ventanas temporales (duración de ventana y salto constantes) y un número determinado de coeficientes cepstrales, para ello se uso la función `melfcc()` como se ha comentado anteriormente. Dado que los MFCC se calculan por frames y generan una matriz temporal, se incorporó además información dinámica calculando las derivadas temporales: ($\Delta$) (delta) y ($\Delta\Delta$) (delta-delta), mediante la función `delta_simple()`, capturando así los cambios espectrales a lo largo del tiempo.
 
 ```{r,include=FALSE}
 #calcula derivadas temporales (Δ) aproximadas sobre una matriz por frames (MFCC u otra).
@@ -990,21 +996,21 @@ Para tratar este problema de clasificación, se probaron diferentes datasets y d
 
 Se eligió entrenar un *SVM con kernel RBF* porque es un modelo especialmente adecuado para el tipo de datos que hemos usado.
 
-En nuestro caso, cada audio no se mantiene como una secuencia temporal completa, sino que se transforma en un vector fijo de características: medias y desviaciones estándar de los MFCC y de sus derivadas ($\Delta$) y ($\Delta\Delta$). Esto convierte el problema en un dataset tabular (una fila por audio y un número moderado de variables, en torno a 72 predictores), similar a un problema clásico de clasificación con variables numéricas.
+En nuestro caso, cada audio no se mantiene como una secuencia temporal completa, sino que se transforma en un vector fijo de características: medias y desviaciones estándar de los MFCC y de sus derivadas $\Delta$ y $\Delta\Delta$. Esto convierte el problema en un dataset tabular (una fila por audio y un número moderado de variables, en torno a 72 predictores), similar a un problema clásico de clasificación con variables numéricas.
 
 Con este tipo de variables, es razonable esperar que la separación entre audios reales y audios generados por IA no sea perfectamente lineal. Es decir, las dos clases pueden mezclarse en el espacio de características y necesitar una frontera de decisión más flexible que una simple recta o plano.
 
 Por este motivo se utiliza un SVM con kernel RBF, ya que este modelo:
 
 - Puede capturar relaciones no lineales entre las variables.
-- Suele funcionar muy bien cuando hay un número medio de características (ni muy pocas ni miles)
-- Es un baseline clásico y robusto en tareas de voz y audio cuando se trabaja con MFCC y estadísticas agregadas. [@temko2006classification]
+- Suele funcionar muy bien cuando hay un número medio de características (ni muy pocas ni miles)\citep{mathworks_fitcsvm}
+- Es un baseline clásico y robusto en tareas de voz y audio cuando se trabaja con MFCC y estadísticas agregadas.\citep{temko2006classification}
 
 #### Proceso de entrenamiento
 
 Para entrenar el clasificador se definió un procedimiento de validación y ajuste de hiperparámetros que permite estimar el rendimiento de forma robusta y reducir el riesgo de sobreajuste. 
 
-En primer lugar, se estableció un esquema de validación mediante la función trainControl(). En este caso se utilizó validación cruzada repetida (repeated cross-validation), dividiendo el conjunto de entrenamiento en 5 particiones (5 folds), de forma que en cada iteración se entrena el modelo con 4 folds y se valida con el fold restante. Además, el proceso completo se repite repeats = 2 veces. 
+En primer lugar, se estableció un esquema de validación mediante la función `trainControl()`. En este caso se utilizó validación cruzada repetida (repeated cross-validation), dividiendo el conjunto de entrenamiento en 5 particiones (5 folds), de forma que en cada iteración se entrena el modelo con 4 folds y se valida con el fold restante. Además, el proceso completo se repite repeats = 2 veces. 
 
 Una vez fijado el esquema de validación, se entrenó el modelo mediante la función `train()` (method="svmRadial") del paquete `caret`, obteniendo el modelo entrenado: `svm_fit`.
 
@@ -1328,5 +1334,3 @@ print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
 Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos, los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento castellano neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
 
 Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
-
-## REFERENCIAS
