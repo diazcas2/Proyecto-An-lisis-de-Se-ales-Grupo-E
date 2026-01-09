@@ -14,6 +14,7 @@ biblio-style: IEEEtran
 header-includes:
   - \citestyle{numbers}
   - \setcitestyle{numbers,square}
+  - \usepackage{float}
 reference-section-title: "REFERENCIAS"
 ---
 
@@ -1286,7 +1287,7 @@ En conjunto, el boxplot indica que el ZCR contiene cierta información sobre el 
 # library(ggplot2)
 ```
 
-```{r, echo=FALSE, fig.cap="Distribución del ZCR por Acento"}
+```{r, fig.pos='H', echo=FALSE, fig.cap="Distribución del ZCR por Acento"}
 ggplot(voces_modif, aes(x = acento, y = zcr, fill = acento)) + geom_boxplot() + labs(title = "Distribución del ZCR por Acento", x= 'Acento', y = "Zero Crossing Rate") + scale_fill_manual(values = c(
     AN = "#FFE0EC",  
     AR = "#FFB3C6",  
