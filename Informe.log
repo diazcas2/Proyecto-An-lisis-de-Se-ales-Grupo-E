@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.12.21)  10 JAN 2026 20:21
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.12.21)  10 JAN 2026 20:29
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -572,32 +572,32 @@ Underfull \hbox (badness 1975) in paragraph at lines 637--640
  []
 
 [9] [10]
-<imagenes/int_int_ROC.jpg, id=116, 524.71031pt x 324.46219pt>
+<imagenes/int_int_ROC.jpg, id=113, 524.71031pt x 324.46219pt>
 File: imagenes/int_int_ROC.jpg Graphic file (type jpg)
 <use imagenes/int_int_ROC.jpg>
-Package pdftex.def Info: imagenes/int_int_ROC.jpg  used on input line 806.
+Package pdftex.def Info: imagenes/int_int_ROC.jpg  used on input line 805.
 (pdftex.def)             Requested size: 375.80544pt x 232.38971pt.
 [11{c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc} <./imagenes/int_int_ROC.jpg>]
-<imagenes/int_ntr_ROC.jpg, id=128, 524.71031pt x 323.70938pt>
+<imagenes/int_ntr_ROC.jpg, id=123, 524.71031pt x 323.70938pt>
 File: imagenes/int_ntr_ROC.jpg Graphic file (type jpg)
 <use imagenes/int_ntr_ROC.jpg>
-Package pdftex.def Info: imagenes/int_ntr_ROC.jpg  used on input line 851.
+Package pdftex.def Info: imagenes/int_ntr_ROC.jpg  used on input line 849.
 (pdftex.def)             Requested size: 375.80544pt x 231.85054pt.
-<imagenes/ntr_ntr_ROC.jpg, id=129, 523.9575pt x 323.70938pt>
+<imagenes/ntr_ntr_ROC.jpg, id=124, 523.9575pt x 323.70938pt>
 File: imagenes/ntr_ntr_ROC.jpg Graphic file (type jpg)
 <use imagenes/ntr_ntr_ROC.jpg>
-Package pdftex.def Info: imagenes/ntr_ntr_ROC.jpg  used on input line 898.
+Package pdftex.def Info: imagenes/ntr_ntr_ROC.jpg  used on input line 895.
 (pdftex.def)             Requested size: 375.80544pt x 232.18642pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[12 <./imagenes/int_ntr_ROC.jpg>]
+[12 <./imagenes/int_ntr_ROC.jpg>] [13 <./imagenes/ntr_ntr_ROC.jpg>]
 <Informe_files/figure-latex/unnamed-chunk-37-1.pdf, id=137, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-37-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-37-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-37-1.pdf  used on input line 958.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-37-1.pdf  used on input line 955.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
-[13 <./imagenes/ntr_ntr_ROC.jpg>] [14 <./Informe_files/figure-latex/unnamed-chunk-37-1.pdf>] (./Informe.bbl) [15] (./Informe.aux)
+[14 <./Informe_files/figure-latex/unnamed-chunk-37-1.pdf>] (./Informe.bbl) [15] (./Informe.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-11-14>
@@ -607,18 +607,18 @@ LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 14153 strings out of 469519
- 224869 string characters out of 5468071
- 676064 words of memory out of 5000000
- 42357 multiletter control sequences out of 15000+600000
- 698140 words of font info for 172 fonts, out of 8000000 for 9000
+ 14137 strings out of 469519
+ 224469 string characters out of 5468071
+ 675606 words of memory out of 5000000
+ 42350 multiletter control sequences out of 15000+600000
+ 698046 words of font info for 171 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 89i,8n,93p,1004b,473s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 89i,8n,93p,1004b,465s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmri10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
-Output written on Informe.pdf (15 pages, 372609 bytes).
+Output written on Informe.pdf (15 pages, 373521 bytes).
 PDF statistics:
- 286 PDF objects out of 1000 (max. 8388607)
- 230 compressed objects within 3 object streams
- 58 named destinations out of 1000 (max. 500000)
+ 278 PDF objects out of 1000 (max. 8388607)
+ 222 compressed objects within 3 object streams
+ 51 named destinations out of 1000 (max. 500000)
  39089 words of extra memory for PDF output out of 42996 (max. 10000000)
 
