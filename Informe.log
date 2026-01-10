@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.12.21)  10 JAN 2026 20:14
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.12.21)  10 JAN 2026 20:21
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -403,8 +403,14 @@ File: t1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 ) (c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count327
+) (./Informe.aux
+
+LaTeX Warning: Label `fig:roc' multiply defined.
+
+
+LaTeX Warning: Label `fig:roc' multiply defined.
+
 )
-No file Informe.aux.
 \openout1 = `Informe.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 87.
@@ -542,105 +548,77 @@ File: imagenes/ruido.png Graphic file (type png)
 <use imagenes/ruido.png>
 Package pdftex.def Info: imagenes/ruido.png  used on input line 185.
 (pdftex.def)             Requested size: 375.80544pt x 231.83163pt.
-[2{c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc} <./imagenes/ruido.png>]
-
-Package natbib Warning: Citation `rabiner1978digital y basu2020pitch' on page 3 undefined on input line 229.
-
-[3] [4]
-<Informe_files/figure-latex/unnamed-chunk-22-1.pdf, id=44, 505.89pt x 361.35pt>
+[2{c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc} <./imagenes/ruido.png>] [3] [4]
+<Informe_files/figure-latex/unnamed-chunk-22-1.pdf, id=48, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-22-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-22-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-22-1.pdf  used on input line 438.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-22-1.pdf  used on input line 439.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
 [5]
-<Informe_files/figure-latex/unnamed-chunk-24-1.pdf, id=51, 505.89pt x 361.35pt>
+<Informe_files/figure-latex/unnamed-chunk-24-1.pdf, id=55, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-24-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-24-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-24-1.pdf  used on input line 473.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-24-1.pdf  used on input line 474.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
 [6 <./Informe_files/figure-latex/unnamed-chunk-22-1.pdf>] [7 <./Informe_files/figure-latex/unnamed-chunk-24-1.pdf>]
-<Informe_files/figure-latex/unnamed-chunk-29-1.pdf, id=81, 505.89pt x 361.35pt>
+<Informe_files/figure-latex/unnamed-chunk-29-1.pdf, id=85, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-29-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-29-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-29-1.pdf  used on input line 557.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-29-1.pdf  used on input line 558.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
 [8 <./Informe_files/figure-latex/unnamed-chunk-29-1.pdf>]
-
-Package natbib Warning: Citation `mathworks_fitcsvm' on page 9 undefined on input line 616.
-
-
-Package natbib Warning: Citation `temko2006classification' on page 9 undefined on input line 620.
-
-
-Underfull \hbox (badness 1975) in paragraph at lines 636--639
+Underfull \hbox (badness 1975) in paragraph at lines 637--640
 []\T1/lmr/m/n/10 (+20) Una vez fi-jado el es-quema de val-i-dación, se en-trenó el mod-elo me-di-ante la fun-ción \T1/lmtt/m/n/10 train()
  []
 
-[9]
-
-Package longtable Warning: Column widths have changed
-(longtable)                in table 1 on input line 698.
-
-
-Package longtable Warning: Column widths have changed
-(longtable)                in table 2 on input line 729.
-
-[10]
-<imagenes/int_int_ROC.jpg, id=108, 524.71031pt x 324.46219pt>
+[9] [10]
+<imagenes/int_int_ROC.jpg, id=116, 524.71031pt x 324.46219pt>
 File: imagenes/int_int_ROC.jpg Graphic file (type jpg)
 <use imagenes/int_int_ROC.jpg>
-Package pdftex.def Info: imagenes/int_int_ROC.jpg  used on input line 805.
+Package pdftex.def Info: imagenes/int_int_ROC.jpg  used on input line 806.
 (pdftex.def)             Requested size: 375.80544pt x 232.38971pt.
 [11{c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc} <./imagenes/int_int_ROC.jpg>]
-<imagenes/int_ntr_ROC.jpg, id=120, 524.71031pt x 323.70938pt>
+<imagenes/int_ntr_ROC.jpg, id=128, 524.71031pt x 323.70938pt>
 File: imagenes/int_ntr_ROC.jpg Graphic file (type jpg)
 <use imagenes/int_ntr_ROC.jpg>
-Package pdftex.def Info: imagenes/int_ntr_ROC.jpg  used on input line 850.
+Package pdftex.def Info: imagenes/int_ntr_ROC.jpg  used on input line 851.
 (pdftex.def)             Requested size: 375.80544pt x 231.85054pt.
-<imagenes/ntr_ntr_ROC.jpg, id=121, 523.9575pt x 323.70938pt>
+<imagenes/ntr_ntr_ROC.jpg, id=129, 523.9575pt x 323.70938pt>
 File: imagenes/ntr_ntr_ROC.jpg Graphic file (type jpg)
 <use imagenes/ntr_ntr_ROC.jpg>
-Package pdftex.def Info: imagenes/ntr_ntr_ROC.jpg  used on input line 897.
+Package pdftex.def Info: imagenes/ntr_ntr_ROC.jpg  used on input line 898.
 (pdftex.def)             Requested size: 375.80544pt x 232.18642pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 [12 <./imagenes/int_ntr_ROC.jpg>]
-<Informe_files/figure-latex/unnamed-chunk-37-1.pdf, id=129, 505.89pt x 361.35pt>
+<Informe_files/figure-latex/unnamed-chunk-37-1.pdf, id=137, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-37-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-37-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-37-1.pdf  used on input line 957.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-37-1.pdf  used on input line 958.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
-[13 <./imagenes/ntr_ntr_ROC.jpg>] [14 <./Informe_files/figure-latex/unnamed-chunk-37-1.pdf>]
-No file Informe.bbl.
-
-Package natbib Warning: There were undefined citations.
-
-
-Package longtable Warning: Table widths have changed. Rerun LaTeX.
-
-[15] (./Informe.aux)
+[13 <./imagenes/ntr_ntr_ROC.jpg>] [14 <./Informe_files/figure-latex/unnamed-chunk-37-1.pdf>] (./Informe.bbl) [15] (./Informe.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-11-14>
  ***********
 
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+LaTeX Warning: There were multiply-defined labels.
 
  ) 
 Here is how much of TeX's memory you used:
- 14108 strings out of 469519
- 223976 string characters out of 5468071
- 674057 words of memory out of 5000000
- 42332 multiletter control sequences out of 15000+600000
- 691637 words of font info for 165 fonts, out of 8000000 for 9000
+ 14153 strings out of 469519
+ 224869 string characters out of 5468071
+ 676064 words of memory out of 5000000
+ 42357 multiletter control sequences out of 15000+600000
+ 698140 words of font info for 172 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  89i,8n,93p,1004b,473s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmri10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/Users/Azahara/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
-Output written on Informe.pdf (15 pages, 366716 bytes).
+Output written on Informe.pdf (15 pages, 372609 bytes).
 PDF statistics:
- 275 PDF objects out of 1000 (max. 8388607)
- 219 compressed objects within 3 object streams
- 53 named destinations out of 1000 (max. 500000)
- 34993 words of extra memory for PDF output out of 35830 (max. 10000000)
+ 286 PDF objects out of 1000 (max. 8388607)
+ 230 compressed objects within 3 object streams
+ 58 named destinations out of 1000 (max. 500000)
+ 39089 words of extra memory for PDF output out of 42996 (max. 10000000)
 

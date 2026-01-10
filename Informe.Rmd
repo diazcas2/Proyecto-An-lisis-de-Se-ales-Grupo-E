@@ -987,7 +987,7 @@ Por este motivo se utiliza un SVM con kernel RBF, ya que este modelo:
 - Suele funcionar muy bien cuando hay un número medio de características (ni muy pocas ni miles)\citep{mathworks_fitcsvm}
 - Es un baseline clásico y robusto en tareas de voz y audio cuando se trabaja con MFCC y estadísticas agregadas.\citep{temko2006classification}
 
-#### Proceso de entrenamiento
+*Proceso de entrenamiento*
 
 Para entrenar el clasificador se definió un procedimiento de validación y ajuste de hiperparámetros que permite estimar el rendimiento de forma robusta y reducir el riesgo de sobreajuste. 
 
@@ -1023,7 +1023,7 @@ svm_fit
 
 En total se entrenaron 2 modelos, con 2 datasets diferentes: un dataset extraido de internet (enlace al dataset: \href{https://bil.eecs.yorku.ca/datasets/}{dataset for-norm}) y otro dataset formado por nuestros audios y generados con IA.
 
-#### Proceso de testeo
+*Proceso de testeo*
 
 Para evaluar el rendimiento del modelo una vez entrenado, en primer lugar, se generaron las predicciones del modelo sobre el conjunto de test mediante la función `predict()`. Por un lado, se solicitaron las probabilidades por clase, extrayendo concretamente la probabilidad asociada a la clase “IA” y por otro lado, se obtuvo también la predicción final de clase.
 
@@ -1053,7 +1053,7 @@ results <- data.frame(
 
 Se realizó el testeo sobre datos del dataset extraido de internet y sobre datos extraidos del dataset creado por nosotros.
 
-#### Centroide espectral
+*Centroide espectral*
 
 Dado que el centroide espectral mostró diferencias entre voces humanas y generadas por IA, y aunque sus valores aislados no permiten una separación perfecta, resulta interesante evaluar su capacidad discriminativa en conjunto para clasificar el origen de la voz. Para ello, se entrenaron dos modelos de clasificación basados en random forest con el objetivo de evaluar la capacidad discriminativa de las características derivadas del centroide espectral. El primer modelo utiliza exclusivamente el centroide espectral global, mientras que el segundo incorpora los centroides espectrales obtenidos mediante segmentación temporal, junto con su desviación típica. En ambos casos, el análisis se realizó de forma independiente para voces masculinas y femeninas, por lo que se obtuvieron matrices de confusión separadas para cada grupo.
 
@@ -1164,7 +1164,7 @@ En conjunto, los resultados muestran que, aunque el centroide espectral global p
 
 Por último, al comparar estos resultados con los obtenidos mediante otros descriptores espectrales más complejos, como los coeficientes cepstrales en escala Mel (MFCC), se observa que estos últimos ya incorporan de forma más eficiente información espectral y temporal relevante para la clasificación. En consecuencia, la inclusión del centroide espectral en modelos que ya utilizan MFCC no aporta una mejora sustancial adicional.
 
-#### Resultados
+*Resultados*
 
 Se evaluó el rendimiento del sistema bajo tres configuraciones experimentales, combinando distintos conjuntos de entrenamiento y test con el objetivo de analizar tanto el desempeño en condiciones controladas como su capacidad de generalización:
 
@@ -1174,7 +1174,7 @@ Se evaluó el rendimiento del sistema bajo tres configuraciones experimentales, 
 
 3. Entrenamiento con nuestro dataset y test con nuestro dataset, para estimar el rendimiento del modelo cuando se entrena y evalúa específicamente en el contexto y características de nuestro conjunto de datos.
 
-##### Caso 1: Entrenado con dataset de Internet y testeado con dataset de Internet
+*Caso 1: Entrenado con dataset de Internet y testeado con dataset de Internet*
 
 \[
 \begin{array}{c|cc}
@@ -1202,7 +1202,7 @@ Estos resultados son buenos y razonables, y se explican por dos factores princip
 
 - No existe cambio de dominio ya que las condiciones de grabación, tipos de voces de IA y características del preprocesado son similares entre train y test.
 
-##### Caso 2: Entrenado con dataset de Internet y testeado con nuestro dataset
+*Caso 2: Entrenado con dataset de Internet y testeado con nuestro dataset*
 
 \[
 \begin{array}{c|cc}
@@ -1230,7 +1230,7 @@ En la matriz de confusión se observa un patrón típico de cambio de dominio:
 
 Estos resultados son lógicos: al cambiar de dominio suele aparecer una degradación moderada porque cambian distribuciones (calidad del micrófono, ruido de fondo, compresión, etc.). Aun así, que el rendimiento se mantenga por encima del 90% sugiere que los MFCC agregados y sus deltas están capturando rasgos relativamente transferibles entre datasets.
 
-##### Caso 3: Entrenado con nuestro dataset y testeado con nuestro dataset 
+*Caso 3: Entrenado con nuestro dataset y testeado con nuestro dataset *
 
 \[
 \begin{array}{c|cc}
@@ -1315,8 +1315,12 @@ Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en e
 
 ## CONCLUSIONES
 
-El proyecto ha mostrado que es posible analizar señales de voz y extraer información acústica útil para tareas de clasificación. Se han obtenido buenos resultados en la identificación del sexo del hablante y en la diferenciación entre voces humanas y voces generadas por IA, confirmando la eficacia de las técnicas empleadas.
+El desarrollo del proyecto ha permitido demostrar que es posible analizar señales de voz y extraer de ellas información acústica suficiente para abordar con éxito distintas tareas de clasificación. 
 
-En cambio, la clasificación del acento no ha alcanzado la precisión deseada, principalmente por el tamaño y la diversidad limitada de los datos. Esto señala la necesidad de bases de datos más amplias y variadas y abre una línea clara de mejora futura.
+En particular, se han obtenido buenos resultados en la identificación del sexo del hablante y en la diferenciación entre voces humanas y voces generadas por IA, lo que confirma que la combinación de técnicas de preprocesado, extracción de características y aprendizaje automático constituye una herramienta eficaz para el análisis de voz en entornos reales.
 
-En general, se han cumplido la mayoría de los objetivos y se ha identificado qué descriptores resultan más útiles en cada caso. Además, los resultados muestran que estas técnicas pueden aplicarse a problemas actuales como la detección de voces sintéticas, con posibles implicaciones en seguridad y verificación de identidad. Como continuación del trabajo, sería interesante ampliar la base de datos y explorar modelos más avanzados, tomando estos resultados como punto de partida para seguir profundizando en el análisis automático de la voz.
+Por el contrario, la clasificación del acento no ha alcanzado el nivel de precisión esperado. Los resultados apuntan a que este problema requiere bases de datos considerablemente más amplias y diversas, ya que la variabilidad entre los acentos y el solapamiento entre categorías dificultan la generalización de los modelos entrenados. Lejos de interpretarse como una limitación negativa, este resultado motiva a una investigación futura donde la relevancia del tamaño muestral y de la representatividad de los datos ocupan una gran importancia.
+
+En conjunto, el trabajo ha permitido alcanzar la mayor parte de los objetivos planteados y entender mejor qué descriptores son realmente informativos según cada clasificador. Además, muestra que técnicas relativamente sencillas pueden abordar problemas actuales como la detección de voces sintéticas, con posibles aplicaciones en seguridad y verificación de identidad.
+
+Como continuación natural del proyecto, sería interesante ampliar la base de datos, incorporar nuevos descriptores o probar modelos más avanzados. Los resultados obtenidos sirven así como un buen punto de partida para seguir profundizando en el análisis automático de la voz.
