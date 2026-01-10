@@ -43,28 +43,13 @@ pacman::p_load(
 )
 ```
 
-## INTRODUCCIÓN
+## INTRODUCCIÓN Y OBJETIVOS DEL PROYECTO
 
-## OBJETIVOS DEL PROYECTO
+La voz es una señal acústica compleja que contiene información tanto del contenido lingüístico como de características propias del hablante. Mediante técnicas de procesado digital de señales es posible transformar una grabación en un conjunto de descriptores numéricos que resumen propiedades relevantes del audio, y utilizar estos descriptores para resolver tareas de clasificación.
 
-El objetivo principal de este trabajo es analizar señales de voz a partir de grabaciones propias y desarrollar modelos de clasificación capaces de identificar distintas características de la señal de audio. Para ello, se parte de un conjunto de audios etiquetados y se emplean técnicas de preprocesado, extracción de características y aprendizaje automático, con el fin de obtener modelos que puedan generalizar su comportamiento ante audios no utilizados durante el entrenamiento.
+En este trabajo se plantea el análisis de señales de voz humanas y generadas por inteligencia artificial, con el fin de estudiar qué características acústicas permiten distinguir entre distintos tipos de hablantes y orígenes de la señal. 
 
-De manera más específica, los objetivos del trabajo son los siguientes:
-
-* Analizar señales de voz grabadas por los propios autores y prepararlas para su posterior tratamiento mediante técnicas de preprocesado.
-
-* Extraer características acústicas relevantes que permitan describir distintas propiedades de la voz de forma numérica.
-
-* Construir un conjunto de datos estructurado a partir de las características extraídas y las etiquetas conocidas de cada audio.
-
-* Desarrollar y entrenar modelos de clasificación capaces de identificar el sexo del hablante a partir de la señal de voz.
-
-* Desarrollar modelos de clasificación para la identificación del acento, distinguiendo entre español neutro, andaluz y argentino.
-
-* Investigar la viabilidad de diferenciar entre voces humanas y voces generadas por inteligencia artificial a partir de descriptores acústicos.
-
-* Evaluar el rendimiento de los modelos propuestos mediante técnicas de validación adecuadas.
-
+Así pues, se centra en tres objetivos principales: la clasificación del sexo del hablante, la detección de voces generadas por inteligencia artificial frente a voces humanas, y la identificación del acento (español neutro, andaluz y argentino). Para abordar estos problemas, las señales se transformarán en conjuntos de datos estructurados que permiten el entrenamiento y evaluación de distintos modelos de clasificación.
 
 ## PREPROCESADO
 
@@ -320,7 +305,7 @@ El *period pitch* está directamente relacionado con la frecuencia fundamental d
 
 Así pues, el period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
 
-De acuerdo con la literatura consultada, los valores típicos de frecuencia fundamental en voz humana se sitúan aproximadamente en el rango comprendido entre 85 y 260 Hz, presentando diferencias claras entre hombres y mujeres (\citep{rabiner1978digital} y \citep{basu2020pitch}). 
+De acuerdo con la literatura consultada, los valores típicos de frecuencia fundamental en voz humana se sitúan aproximadamente en el rango comprendido entre 85 y 260 Hz, presentando diferencias claras entre hombres y mujeres \citep{rabiner1978digital y basu2020pitch}. 
 
 A partir de estos rangos reportados, se definieron umbrales prácticos para la clasificación del sexo. Con el fin de evitar clasificaciones forzadas en las zonas de solapamiento entre ambos grupos, se estableció una región intermedia de indeterminación. De este modo, se consideraron voces masculinas aquellas con frecuencias fundamentales inferiores a 170 Hz, voces femeninas aquellas con valores superiores a 180Hz y como indeterminadas aquellas comprendidas entre ambos umbrales.
 
@@ -1327,3 +1312,11 @@ print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
 Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos ($R^2_{\text{McFadden}}~$ = 0.5296), los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento castellano neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
 
 Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
+
+## CONLUSIONES
+
+En este trabajo se ha llevado a cabo un análisis completo de señales de voz, partiendo de grabaciones propias y de audios generados por inteligencia artificial. Tras el preprocesado de las señales, se extrajeron distintas características acústicas que permitieron representar cada audio de forma numérica y construir conjuntos de datos adecuados para el entrenamiento de modelos de clasificación.
+
+En relación con los objetivos planteados, se ha conseguido desarrollar un modelo eficaz para la clasificación del sexo del hablante, así como un modelo capaz de distinguir entre voces humanas y voces generadas por IA, mostrando un buen rendimiento. Por el contrario,tal y como se ha visto, la clasificación del acento no ha producido resultados concluyentes, principalmente debido al tamaño reducido y a la baja diversidad de la muestra disponible por acento.
+
+En conjunto, los resultados obtenidos muestran que las características acústicas extraídas contienen información relevante para tareas de clasificación de voz y que los modelos propuestos permiten abordar con éxito algunos de los objetivos planteados. Al mismo tiempo, el estudio pone de manifiesto la importancia de disponer de conjuntos de datos más amplios y variados para problemas más complejos, como la identificación de acentos.
