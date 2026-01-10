@@ -1313,10 +1313,8 @@ Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los d
 
 Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
 
-## CONLUSIONES
+## CONCLUSIONES
 
-En este trabajo se ha llevado a cabo un análisis completo de señales de voz, partiendo de grabaciones propias y de audios generados por inteligencia artificial. Tras el preprocesado de las señales, se extrajeron distintas características acústicas que permitieron representar cada audio de forma numérica y construir conjuntos de datos adecuados para el entrenamiento de modelos de clasificación.
+En lo que respecta a los objetivos previamente planteados, cabe destacar que se ha conseguido desarrollar un modelo eficaz para la clasificación del sexo del hablante y otro capaz de distinguir entre voces humanas y generadas por inteligencia artificial, ambos con un rendimiento satisfactorio, lo que demuestra la viabilidad de analizar señales de voz mediante la extracción de determinadas características acústicas. 
 
-En relación con los objetivos planteados, se ha conseguido desarrollar un modelo eficaz para la clasificación del sexo del hablante, así como un modelo capaz de distinguir entre voces humanas y voces generadas por IA, mostrando un buen rendimiento. Por el contrario,tal y como se ha visto, la clasificación del acento no ha producido resultados concluyentes, principalmente debido al tamaño reducido y a la baja diversidad de la muestra disponible por acento.
-
-En conjunto, los resultados obtenidos muestran que las características acústicas extraídas contienen información relevante para tareas de clasificación de voz y que los modelos propuestos permiten abordar con éxito algunos de los objetivos planteados. Al mismo tiempo, el estudio pone de manifiesto la importancia de disponer de conjuntos de datos más amplios y variados para problemas más complejos, como la identificación de acentos.
+Por el contrario, la clasificación del acento no ha producido resultados concluyentes, debido principalmente al tamaño reducido y a la limitada diversidad de la muestra disponible para cada acento, lo que pone de manifiesto que tareas más complejas requieren conjuntos de datos más amplios y representativos para poder obtener resultados robustos.
