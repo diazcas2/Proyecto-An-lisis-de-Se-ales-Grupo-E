@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.4)  11 JAN 2026 13:13
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.4)  11 JAN 2026 14:05
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -567,7 +567,7 @@ File: Informe_files/figure-latex/unnamed-chunk-28-1.pdf Graphic file (type pdf)
 Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-28-1.pdf  used on input line 555.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
 [8 <./Informe_files/figure-latex/unnamed-chunk-28-1.pdf>]
-Underfull \hbox (badness 1975) in paragraph at lines 634--637
+Underfull \hbox (badness 1975) in paragraph at lines 635--638
 []\T1/lmr/m/n/10 (+20) Una vez fi-jado el es-quema de val-i-dación, se en-trenó el mod-elo me-di-ante la fun-ción \T1/lmtt/m/n/10 train()
  []
 
@@ -575,18 +575,18 @@ Underfull \hbox (badness 1975) in paragraph at lines 634--637
 <imagenes/int_int_ROC.jpg, id=113, 524.71031pt x 324.46219pt>
 File: imagenes/int_int_ROC.jpg Graphic file (type jpg)
 <use imagenes/int_int_ROC.jpg>
-Package pdftex.def Info: imagenes/int_int_ROC.jpg  used on input line 802.
+Package pdftex.def Info: imagenes/int_int_ROC.jpg  used on input line 803.
 (pdftex.def)             Requested size: 375.80544pt x 232.38971pt.
 [11{c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc} <./imagenes/int_int_ROC.jpg>]
 <imagenes/int_ntr_ROC.jpg, id=123, 524.71031pt x 323.70938pt>
 File: imagenes/int_ntr_ROC.jpg Graphic file (type jpg)
 <use imagenes/int_ntr_ROC.jpg>
-Package pdftex.def Info: imagenes/int_ntr_ROC.jpg  used on input line 846.
+Package pdftex.def Info: imagenes/int_ntr_ROC.jpg  used on input line 847.
 (pdftex.def)             Requested size: 375.80544pt x 231.85054pt.
 <imagenes/ntr_ntr_ROC.jpg, id=124, 523.9575pt x 323.70938pt>
 File: imagenes/ntr_ntr_ROC.jpg Graphic file (type jpg)
 <use imagenes/ntr_ntr_ROC.jpg>
-Package pdftex.def Info: imagenes/ntr_ntr_ROC.jpg  used on input line 892.
+Package pdftex.def Info: imagenes/ntr_ntr_ROC.jpg  used on input line 893.
 (pdftex.def)             Requested size: 375.80544pt x 232.18642pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
@@ -595,7 +595,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 <Informe_files/figure-latex/unnamed-chunk-36-1.pdf, id=137, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-36-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-36-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-36-1.pdf  used on input line 952.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-36-1.pdf  used on input line 953.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
 [14 <./Informe_files/figure-latex/unnamed-chunk-36-1.pdf>] (./Informe.bbl) [15] (./Informe.aux)
  ***********
@@ -615,7 +615,7 @@ Here is how much of TeX's memory you used:
  14 hyphenation exceptions out of 8191
  89i,8n,93p,1004b,682s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmri10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
-Output written on Informe.pdf (15 pages, 372419 bytes).
+Output written on Informe.pdf (15 pages, 372584 bytes).
 PDF statistics:
  278 PDF objects out of 1000 (max. 8388607)
  222 compressed objects within 3 object streams

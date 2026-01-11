@@ -845,7 +845,7 @@ Tras hacer un análisis descriptivo usando `summary()`, se puede ver que la dura
 summary(voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch","centroide")])
 ```
 
-En cuanto a la frecuencia fundamental (pitch), se observa un rango amplio de valores (aproximadamente entre 80 y 285 Hz), consistente con voces humanas. El análisis por sexo revela que las voces femeninas presentan valores de pitch más elevados que las masculinas. Si lo representamos usando un diagrama de cajas, podemos ver un solapamiento entre ambas distribuciones, lo que indica que probablemente existan errores de clasificación en algunos audios concretos al emplear únicamente esta característica.
+En cuanto a la frecuencia fundamental (pitch), se observa un rango amplio de valores (aproximadamente entre 80 y 285 Hz), consistente con voces humanas. El análisis por sexo revela que las voces femeninas presentan valores de pitch más elevados que las masculinas. Si lo representamos usando un diagrama de cajas (`Figure 2`), podemos ver un solapamiento entre ambas distribuciones, lo que indica que probablemente existan errores de clasificación en algunos audios concretos al emplear únicamente esta característica.
 
 ```{r,echo=FALSE,fig.cap="Distribución del pitch según el sexo."}
 # Aumentamos el margen derecho
@@ -967,7 +967,7 @@ Al observar la gráfica de predicciones, se aprecia que la mayoría de los punto
 
 Sin embargo, en el análisis exploratorio vimos que el diagrama de cajas del pitch tenía zonas donde había solapamiento entre los rangos de frecuencia fundamental de hombres y mujeres. Por lo tanto, es probable que los audios con pitch en el rango intermedio sean precisamente los que generan errores de clasificación, reflejando la variabilidad natural del tono de voz y características individuales que no se capturan únicamente con el period pitch.
 
-En conjunto, estos resultados refuerzan que el pitch es el descriptor más relevante para la clasificación del sexo, pero que la superposición natural de frecuencias humanas introduce un margen de error inevitable, explicando los puntos intermedios en la gráfica de predicciones.
+En conjunto, estos resultados refuerzan que el pitch y el centroide son los descriptores más relevantes para la clasificación del sexo, pero que la superposición natural de frecuencias humanas introduce un margen de error inevitable, explicando los puntos intermedios en la gráfica de predicciones.
 
 ### Clasificación del origen (IA vs Humano): Coeficiente de Mel
 
@@ -1254,7 +1254,7 @@ En conclusión, los resultados obtenidos no son una evidencia sólida de que el 
 
 ### Clasificación del acento
 
-Además de la clasificación por sexo, se intentó abordar la identificación del acento de la voz, considerando tres categorías: castellano neutro, andaluz y argentino. 
+Además de los clasficadores anteriores, se intentó abordar la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. 
 
 Comenzamos haciendo un estudio exploratorio de las características acústicas para comprobar si alguna podía, por sí sola, ayudar a distinguir entre acentos. Nos centramos en la tasa de cruces por cero (ZCR) ya que está muy relacionada con el contenido de altas frecuencias y con la presencia de consonantes fricativas o sonidos sordos, que pueden variar entre acentos, ya sea por mayor aspiración, articulación más “suave” o más “marcada”, etc.
 
@@ -1307,7 +1307,7 @@ r2_mcfadden <- as.numeric(1 - (logL_modelo / logL_nulo)) #Fórmula de McFadden: 
 print(paste("Pseudo R2 (McFadden):", round(r2_mcfadden, 4)))
 ```
 
-Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos ($R^2_{\text{McFadden}}~$ = 0.5296), los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento castellano neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
+Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los datos ($R^2_{\text{McFadden}}~$ = 0.5296), los resultados no pueden considerarse fiables. El número de muestras por acento no es equilibrado: el grupo cuenta con tres personas con acento español neutro (dos hombres y una mujer), dos con acento andaluz (hombre y mujer) y una sola con acento argentino (mujer). La variabilidad interna de cada clase es muy limitada al usar varios audios de las mismas voces. Esto hace que, en la práctica, el modelo tiende a aprender rasgos de cada persona más que del acento en sí.
 
 Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
 
