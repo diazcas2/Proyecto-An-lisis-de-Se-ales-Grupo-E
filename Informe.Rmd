@@ -258,7 +258,6 @@ clean_audio <- function(audio, df_analisis) {
 }
 ```
 
-<<<<<<< HEAD
 ```{r,include=FALSE,  eval=FALSE}
 =======
 ```{r, eval=FALSE, include=FALSE}
