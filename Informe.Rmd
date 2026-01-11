@@ -304,7 +304,7 @@ El *period pitch* está directamente relacionado con la frecuencia fundamental d
 
 Así pues, el period pitch se estimó mediante un método basado en la autocorrelación de la señal, que permite detectar la periodicidad dominante en los segmentos sonoros del audio, principalmente en vocales. A partir del retardo correspondiente al máximo de la autocorrelación se obtiene el período fundamental de la señal, y su inversa proporciona una estimación de la frecuencia fundamental o pitch, expresada en hercios (Hz), es decir, vibraciones por segundo.
 
-De acuerdo con la literatura consultada, los valores típicos de frecuencia fundamental en voz humana se sitúan aproximadamente en el rango comprendido entre 85 y 260 Hz, presentando diferencias claras entre hombres y mujeres (\citep{rabiner1978digital} y \citep{basu2020pitch}). 
+De acuerdo con la literatura consultada, los valores típicos de frecuencia fundamental en voz humana se sitúan aproximadamente en el rango comprendido entre 85 y 260 Hz, presentando diferencias claras entre hombres y mujeres \citep{rabiner1978digital, basu2020pitch}. 
 
 A partir de estos rangos reportados, se definieron umbrales prácticos para la clasificación del sexo. Con el fin de evitar clasificaciones forzadas en las zonas de solapamiento entre ambos grupos, se estableció una región intermedia de indeterminación. De este modo, se consideraron voces masculinas aquellas con frecuencias fundamentales inferiores a 170 Hz, voces femeninas aquellas con valores superiores a 180Hz y como indeterminadas aquellas comprendidas entre ambos umbrales.
 
@@ -983,8 +983,8 @@ Con este tipo de variables, es razonable esperar que la separación entre audios
 Por este motivo se utiliza un SVM con kernel RBF, ya que este modelo:
 
 - Puede capturar relaciones no lineales entre las variables.
-- Suele funcionar muy bien cuando hay un número medio de características (ni muy pocas ni miles)\citep{mathworks_fitcsvm}
-- Es un baseline clásico y robusto en tareas de voz y audio cuando se trabaja con MFCC y estadísticas agregadas.\citep{temko2006classification}
+- Suele funcionar muy bien cuando hay un número medio de características (ni muy pocas ni miles)\cite{mathworks_fitcsvm}
+- Es un baseline clásico y robusto en tareas de voz y audio cuando se trabaja con MFCC y estadísticas agregadas.\cite{temko2006classification}
 
 **Proceso de entrenamiento**
 
