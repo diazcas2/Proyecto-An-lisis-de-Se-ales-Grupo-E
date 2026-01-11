@@ -1176,7 +1176,7 @@ Se evaluó el rendimiento del sistema bajo tres configuraciones experimentales, 
 
 \[
 \begin{array}{c|cc}
-\textbf{Predicción} \backslash \textbf{Real} & \textbf{real} & \textbf{ia} \\
+\textbf{Predicción}  & \textbf{real} & \textbf{ia} \\
 \hline
 \textbf{real} & 2063 & 106 \\
 \textbf{ia}   & 201  & 2264 \\
@@ -1204,7 +1204,7 @@ Estos resultados son buenos y razonables, y se explican por dos factores princip
 
 \[
 \begin{array}{c|cc}
-\textbf{Predicción} \backslash \textbf{Real} & \textbf{real} & \textbf{ia} \\
+\textbf{Predicción} & \textbf{real} & \textbf{ia} \\
 \hline
 \textbf{real} & 177 & 3 \\
 \textbf{ia}   & 26  & 105 \\
@@ -1232,7 +1232,7 @@ Estos resultados son lógicos: al cambiar de dominio suele aparecer una degradac
 
 \[
 \begin{array}{c|cc}
-\textbf{Predicción} \backslash \textbf{Real} & \textbf{real} & \textbf{ia} \\
+\textbf{Predicción} & \textbf{real} & \textbf{ia} \\
 \hline
 \textbf{real} & 153 & 0 \\
 \textbf{ia}   & 0  & 108 \\
