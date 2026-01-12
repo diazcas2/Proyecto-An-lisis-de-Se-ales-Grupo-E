@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.4)  12 JAN 2026 20:15
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2026.1.4)  12 JAN 2026 21:10
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -526,76 +526,72 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
-LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 119.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <10> on input line 115.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <7> on input line 115.
+LaTeX Font Info:    External font `lmex10' loaded for size
+(Font)              <5> on input line 115.
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 123.
 (c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 146.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 146.
-LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 146.
-[1
+) [1
 
 {c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}]
-LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 157.
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 161.
 (c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-<imagenes/ruido.png, id=20, 529.98pt x 326.93571pt>
+<imagenes/ruido.png, id=21, 529.98pt x 326.93571pt>
 File: imagenes/ruido.png Graphic file (type png)
 <use imagenes/ruido.png>
-Package pdftex.def Info: imagenes/ruido.png  used on input line 185.
+Package pdftex.def Info: imagenes/ruido.png  used on input line 189.
 (pdftex.def)             Requested size: 375.80544pt x 231.83163pt.
-[2{c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc} <./imagenes/ruido.png>] [3] [4]
-<Informe_files/figure-latex/unnamed-chunk-21-1.pdf, id=48, 505.89pt x 361.35pt>
+[2{c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}{c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc} <./imagenes/ruido.png>] [3] [4] [5]
+<Informe_files/figure-latex/unnamed-chunk-21-1.pdf, id=55, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-21-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-21-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-21-1.pdf  used on input line 436.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-21-1.pdf  used on input line 440.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
-[5]
-<Informe_files/figure-latex/unnamed-chunk-23-1.pdf, id=55, 505.89pt x 361.35pt>
+<Informe_files/figure-latex/unnamed-chunk-23-1.pdf, id=56, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-23-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-23-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-23-1.pdf  used on input line 471.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-23-1.pdf  used on input line 475.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
 [6 <./Informe_files/figure-latex/unnamed-chunk-21-1.pdf>] [7 <./Informe_files/figure-latex/unnamed-chunk-23-1.pdf>]
-<Informe_files/figure-latex/unnamed-chunk-28-1.pdf, id=85, 505.89pt x 361.35pt>
+<Informe_files/figure-latex/unnamed-chunk-28-1.pdf, id=86, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-28-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-28-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-28-1.pdf  used on input line 555.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-28-1.pdf  used on input line 559.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
 [8 <./Informe_files/figure-latex/unnamed-chunk-28-1.pdf>]
-Underfull \hbox (badness 1975) in paragraph at lines 635--638
+Underfull \hbox (badness 1975) in paragraph at lines 639--642
 []\T1/lmr/m/n/10 (+20) Una vez fi-jado el es-quema de val-i-dación, se en-trenó el mod-elo me-di-ante la fun-ción \T1/lmtt/m/n/10 train()
  []
 
 [9] [10]
-<imagenes/int_int_ROC.jpg, id=113, 524.71031pt x 324.46219pt>
+<imagenes/int_int_ROC.jpg, id=114, 524.71031pt x 324.46219pt>
 File: imagenes/int_int_ROC.jpg Graphic file (type jpg)
 <use imagenes/int_int_ROC.jpg>
-Package pdftex.def Info: imagenes/int_int_ROC.jpg  used on input line 803.
+Package pdftex.def Info: imagenes/int_int_ROC.jpg  used on input line 807.
 (pdftex.def)             Requested size: 375.80544pt x 232.38971pt.
 [11{c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc} <./imagenes/int_int_ROC.jpg>]
-<imagenes/int_ntr_ROC.jpg, id=123, 524.71031pt x 323.70938pt>
+<imagenes/int_ntr_ROC.jpg, id=124, 524.71031pt x 323.70938pt>
 File: imagenes/int_ntr_ROC.jpg Graphic file (type jpg)
 <use imagenes/int_ntr_ROC.jpg>
-Package pdftex.def Info: imagenes/int_ntr_ROC.jpg  used on input line 847.
+Package pdftex.def Info: imagenes/int_ntr_ROC.jpg  used on input line 851.
 (pdftex.def)             Requested size: 375.80544pt x 231.85054pt.
-<imagenes/ntr_ntr_ROC.jpg, id=124, 523.9575pt x 323.70938pt>
+[12 <./imagenes/int_ntr_ROC.jpg>]
+<imagenes/ntr_ntr_ROC.jpg, id=130, 523.9575pt x 323.70938pt>
 File: imagenes/ntr_ntr_ROC.jpg Graphic file (type jpg)
 <use imagenes/ntr_ntr_ROC.jpg>
-Package pdftex.def Info: imagenes/ntr_ntr_ROC.jpg  used on input line 893.
+Package pdftex.def Info: imagenes/ntr_ntr_ROC.jpg  used on input line 897.
 (pdftex.def)             Requested size: 375.80544pt x 232.18642pt.
-
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-[12 <./imagenes/int_ntr_ROC.jpg>] [13 <./imagenes/ntr_ntr_ROC.jpg>]
-<Informe_files/figure-latex/unnamed-chunk-36-1.pdf, id=137, 505.89pt x 361.35pt>
+[13 <./imagenes/ntr_ntr_ROC.jpg>]
+<Informe_files/figure-latex/unnamed-chunk-36-1.pdf, id=138, 505.89pt x 361.35pt>
 File: Informe_files/figure-latex/unnamed-chunk-36-1.pdf Graphic file (type pdf)
 <use Informe_files/figure-latex/unnamed-chunk-36-1.pdf>
-Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-36-1.pdf  used on input line 953.
+Package pdftex.def Info: Informe_files/figure-latex/unnamed-chunk-36-1.pdf  used on input line 957.
 (pdftex.def)             Requested size: 375.80544pt x 268.4369pt.
 [14 <./Informe_files/figure-latex/unnamed-chunk-36-1.pdf>] (./Informe.bbl) [15] (./Informe.aux)
  ***********
@@ -613,12 +609,12 @@ Here is how much of TeX's memory you used:
  42350 multiletter control sequences out of 15000+600000
  698046 words of font info for 171 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 89i,8n,93p,1004b,465s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 89i,8n,93p,1004b,542s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmri10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/Users/esdia/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
-Output written on Informe.pdf (15 pages, 374779 bytes).
+Output written on Informe.pdf (15 pages, 375564 bytes).
 PDF statistics:
- 278 PDF objects out of 1000 (max. 8388607)
- 222 compressed objects within 3 object streams
+ 279 PDF objects out of 1000 (max. 8388607)
+ 223 compressed objects within 3 object streams
  51 named destinations out of 1000 (max. 500000)
  39089 words of extra memory for PDF output out of 42996 (max. 10000000)
 

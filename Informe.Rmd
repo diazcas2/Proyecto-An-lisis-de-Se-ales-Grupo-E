@@ -51,6 +51,9 @@ En este trabajo se plantea el análisis de señales de voz humanas y generadas p
 
 Así pues, se centra en tres objetivos principales: la clasificación del sexo del hablante, la detección de voces generadas por inteligencia artificial frente a voces humanas, y la identificación del acento (español neutro, andaluz y argentino). Para abordar estos problemas, las señales se transformarán en conjuntos de datos estructurados que permiten el entrenamiento y evaluación de distintos modelos de clasificación.
 
+El código fuente completo del proyecto, junto con los datos y scripts necesarios para reproducir los resultados, están disponibles en GitHub:
+https://github.com/diazcas2/Proyecto-An-lisis-de-Se-ales-Grupo-E.git
+
 ## PREPROCESADO
 
 ### Conversión y lectura de audios
