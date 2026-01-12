@@ -1,5 +1,5 @@
 ---
-title: "Informe"
+title: "Análisis y clasificación de voz"
 author:
 - "Azahara Martínez, María de los Ángeles Díaz,Álvaro Nieva, Iyán Álvarez,"
 - "Florencia Pellegrini, Óscar Camacho"
