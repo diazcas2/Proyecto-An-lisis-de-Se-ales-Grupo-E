@@ -6,6 +6,8 @@ Este proyecto aborda el **análisis, preprocesado y clasificación de señales d
 
 El trabajo está desarrollado en **R**, apoyándose en librerías especializadas para el tratamiento de audio y el modelado estadístico.
 
+ENLACE A LOS DATOS: `https://bil.eecs.yorku.ca/datasets/` donde la carpeta usada es `for-norm.tar.gz`.
+
 ## Objetivos
 
 * Preprocesar señales de voz para mejorar su calidad analítica.
