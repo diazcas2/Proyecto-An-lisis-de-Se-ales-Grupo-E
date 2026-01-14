@@ -310,7 +310,7 @@ De acuerdo con la literatura consultada, los valores típicos de frecuencia fund
 
 A partir de estos rangos reportados, se definieron umbrales prácticos para la clasificación del sexo. Con el fin de evitar clasificaciones forzadas en las zonas de solapamiento entre ambos grupos, se estableció una región intermedia de indeterminación. De este modo, se consideraron voces masculinas aquellas con frecuencias fundamentales inferiores a 170 Hz, voces femeninas aquellas con valores superiores a 180Hz y como indeterminadas aquellas comprendidas entre ambos umbrales.
 
-Para calcular el pitch creamos la función `period_pitch` y, con el fin de garantizar la fiabilidad de la estimación, se incorporan una serie de comprobaciones previas sobre la señal de entrada. En primer lugar, se verifica que el audio contenga un número suficiente de muestras, ya que señales excesivamente cortas no permiten identificar una periodicidad clara. Asimismo, la búsqueda del período fundamental se restringe a un rango de retardos coherente con los valores esperados de frecuencia fundamental en voz humana, evitando así detecciones erróneas asociadas a componentes no relevantes de la señal. En aquellos casos en los que la longitud efectiva de la señal no permite cubrir dicho rango de retardos, el cálculo del pitch se considera no válido. 
+Para calcular el pitch creamos la función `period_pitch` y, con el fin de garantizar la fiabilidad de la estimación, se incorporan una serie de comprobaciones previas sobre la señal de entrada. En primer lugar, se verifica que el audio contenga un número suficiente de muestras, ya que señales excesivamente cortas no permiten identificar una periodicidad clara. Asimismo, la búsqueda del período fundamental se restringe a un rango de retardos coherente con los valores esperados de frecuencia fundamental en voz humana, definido a partir de la frecuencia de muestreo fija de 16 kHz y de unos límites de frecuencia previamente establecidos (80 y 300). De este modo, todos los audios se analizan bajo las mismas condiciones, evitando la detección de periodicidades no compatibles con la voz humana. En aquellos casos en los que la longitud efectiva del audio no permite cubrir dicho rango de retardos, el cálculo del pitch se considera no válido. 
 
 Esta decisión se basa en el hecho de que los métodos basados en autocorrelación solo proporcionan estimaciones fiables en segmentos sonoros suficientemente largos y con una periodicidad bien definida, como ocurre principalmente en las partes vocales del habla.
 
@@ -362,13 +362,13 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
 }
 ```
 
-### 3.2. Coeficientes Mel (MFCC) y representación de la señal
+### 3.2. Coeficientes cepstrales en escala Mel (MFCC) y representación de la señal
 
-Como parte de la extracción de características espectrales, se calcularon los coeficientes cepstrales en escala Mel (MFCC), ampliamente utilizados en tareas de análisis de voz por su capacidad de capturar información relacionada con el timbre y la envolvente espectral. Los MFCC (coeficientes Mel) son características que resumen el timbre de la voz a partir de su espectro, usando una escala de frecuencias similar a la percepción humana (escala Mel). 
+Como parte de la extracción de características espectrales, se calcularon los coeficientes cepstrales en escala Mel (MFCC), ampliamente utilizados en tareas de análisis de voz por su capacidad de capturar información relacionada con el timbre y la envolvente espectral. Los MFCC son características que resumen el timbre de la voz a partir de su espectro, usando una escala de frecuencias similar a la percepción humana (escala Mel). 
 
-En el código, para calcular estos coeficientes, se usa la función `melfcc()` de la libreria `tuneR`. Esta función divide la señal en ventanas temporales solapadas de duración 25 ms con un salto 10 ms. Para cada ventana se obtiene el espectro (vía FFT), se proyecta sobre un banco de filtros Mel con 40 bandas, se aplica compresión logarítmica y posteriormente una transformación tipo DCT para obtener un número reducido de coeficientes. En este caso se conservan 12 coeficientes por ventana.
+En el código, para calcular estos coeficientes, se usa la función `melfcc()` de la libreria `tuneR`. Esta función divide la señal en ventanas temporales solapadas de duración 25 ms con un salto de 10 ms. Para cada ventana se obtiene el espectro (vía FFT), se proyecta sobre un banco de filtros Mel con 40 bandas, se aplica compresión logarítmica y posteriormente una transformación tipo DCT para obtener un número reducido de coeficientes. En este caso se conservan 12 coeficientes por ventana.
 
-Además se calculan $\Delta$ y $\Delta\Delta$ son las derivadas temporales de los MFCC: $\Delta$ mide cómo cambian de un frame al siguiente (dinámica) y $\Delta\Delta$ mide el cambio de ese cambio.
+Además se calculan $\Delta$ y $\Delta\Delta$ que son las derivadas temporales de los MFCC: $\Delta$ mide cómo cambian de un frame al siguiente (dinámica) y $\Delta\Delta$ mide el cambio de ese cambio.
 
 
 
@@ -891,7 +891,7 @@ vars_num <- voces_df[, c("duracion", "zcr", "energia_rms", "period_pitch", "cent
 round(cor(vars_num, use = "complete.obs"), 2)
 ```
 
-En cuanto al centroide espectral global, se observa una diferencia clara entre las voces humanas y las generadas por inteligencia artificial, tanto en el grupo masculino como en el femenino. En ambos casos, las voces generadas por IA presentan valores de centroide más elevados, lo que indica una mayor concentración de energía en frecuencias altas. Esta diferencia es especialmente marcada en las voces masculinas, donde el solapamiento entre clases es reducido. En el caso de las voces femeninas, aunque la tendencia se mantiene, se aprecia un mayor solapamiento entre ambas distribuciones.
+Analizando más profundamente el centroide espectral global, se observa una diferencia clara entre las voces humanas y las generadas por inteligencia artificial, tanto en el grupo masculino como en el femenino. En ambos casos, las voces generadas por IA presentan valores de centroide más elevados, lo que indica una mayor concentración de energía en frecuencias altas. Esta diferencia es especialmente marcada en las voces femeninas, donde el solapamiento entre clases es reducido. En el caso de las voces masculinas, aunque la tendencia se mantiene, se aprecia un mayor solapamiento entre ambas distribuciones.
 
 ```{r,echo=FALSE, fig.cap="Centroide espectral: Humano vs IA por sexo."}
 boxplot(centroide ~ origen + sexo,
@@ -902,7 +902,7 @@ boxplot(centroide ~ origen + sexo,
 
 ```
 
-Al analizar la desviación típica del centroide espectral obtenida a partir de la segmentación temporal, se esperaba observar una mayor capacidad de separación entre voces humanas y generadas por inteligencia artificial, bajo la hipótesis de que las voces humanas presentan una mayor variabilidad espectral a lo largo del tiempo. Sin embargo, los resultados muestran un solapamiento considerable entre ambas clases, tanto en voces masculinas como femeninas, lo que indica que esta medida agregada, considerada de forma aislada, no resulta suficiente para discriminar de manera fiable entre ambos tipos de voz. Por si solo, los parametros del centroide segmentado no dan mucha información, no obstante, después los analizaremos todos juntos para ver si entre todos ellos en conjunto pueden proporcionar clasificaciones más robustas.
+Al analizar la desviación típica del centroide espectral obtenida a partir de la segmentación temporal, se esperaba observar una mayor capacidad de separación entre voces humanas y generadas por inteligencia artificial, bajo la hipótesis de que las voces humanas presentan una mayor variabilidad espectral a lo largo del tiempo. Sin embargo, los resultados muestran un solapamiento considerable entre ambas clases, tanto en voces masculinas como femeninas, lo que indica que esta medida agregada, considerada de forma aislada, no resulta suficiente para discriminar de manera fiable entre ambos tipos de voz. Por si solo, los parametros del centroide segmentado no dan mucha información, no obstante, después los analizaremos todos en cojunto para ver si entre todos ellos pueden proporcionar clasificaciones más robustas.
 
 ## 6. MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
 
@@ -912,7 +912,7 @@ A partir del conjunto de características extraídas y del análisis exploratori
 
 Para ello, se codificó la variable objetivo \texttt{sexo} en formato numérico, asignando el valor 1 a las voces femeninas y 0 a las masculinas. Esta transformación permite el uso de modelos probabilísticos basados en regresión logística.
 
-Inicialmente, se ajustó un modelo de regresión logística multivariante que incluía todas las características disponibles en el conjunto de datos: duración, tasa de cruces por cero (ZCR), energía RMS, frecuencia fundamental (pitch), centroide, así como las variables categóricas de origen y acento. Este primer modelo tiene como objetivo evaluar la contribución conjunta de todas las variables y explorar posibles relaciones entre ellas y la variable respuesta.
+Inicialmente, se ajustó un modelo de regresión logística multivariante que incluía todas las características disponibles en el conjunto de datos: duración, ZCR, energía RMS, Period Pitch, centroide, así como las variables categóricas de origen y acento. Este primer modelo tiene como objetivo evaluar la contribución conjunta de todas las variables y explorar posibles relaciones entre ellas y la variable respuesta.
 
 ```{r, include=FALSE}
 voces_df$gender <- ifelse(voces_df$sexo == "F", 1, 0)
@@ -972,7 +972,7 @@ Sin embargo, en el análisis exploratorio vimos que el diagrama de cajas del pit
 
 En conjunto, estos resultados refuerzan que el pitch y el centroide son los descriptores más relevantes para la clasificación del sexo, pero que la superposición natural de frecuencias humanas introduce un margen de error inevitable, explicando los puntos intermedios en la gráfica de predicciones.
 
-### 6.2. Clasificación del origen (IA vs Humano): Coeficiente de Mel
+### 6.2. Clasificación del origen (IA vs Humano): Coeficientes cepstrales con escala Mel
 
 Para tratar este problema de clasificación, se probaron diferentes datasets y dataframes, con los que se entrenó un modelo *SVM con kernel RBF*.
 
