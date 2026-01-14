@@ -43,7 +43,7 @@ pacman::p_load(
 )
 ```
 
-## INTRODUCCIÓN Y OBJETIVOS DEL PROYECTO
+## 1. INTRODUCCIÓN Y OBJETIVOS DEL PROYECTO
 
 La voz es una señal acústica compleja que contiene información tanto del contenido lingüístico como de características propias del hablante. Mediante técnicas de procesado digital de señales es posible transformar una grabación en un conjunto de descriptores numéricos que resumen propiedades relevantes del audio, y utilizar estos descriptores para resolver tareas de clasificación.
 
@@ -54,9 +54,9 @@ Así pues, se centra en tres objetivos principales: la clasificación del sexo d
 El código fuente completo del proyecto, junto con los datos y scripts necesarios para reproducir los resultados, están disponibles en GitHub:
 https://github.com/diazcas2/Proyecto-An-lisis-de-Se-ales-Grupo-E.git
 
-## PREPROCESADO
+## 2. PREPROCESADO
 
-### Conversión y lectura de audios
+### 2.1. Conversión y lectura de audios
 
 Como primer paso del preprocesado, se desarrolló una función para la conversión de archivos de audio desde el formato `.m4a` al formato `.wav`, con el objetivo de unificar el tipo de señal y facilitar su posterior análisis. Para ello, se emplearon las librerías `av` y `tuneR` de R, que permiten la conversión y lectura de señales de audio de forma eficiente.
 
@@ -93,7 +93,7 @@ m4a_files <- list.files(
 rutas_wav <- sapply(m4a_files, convertir_m4a_a_wave)
 ```
 
-### Detección y eliminación de ruido y silencios
+### 2.2. Detección y eliminación de ruido y silencios
 
 Con el objetivo de mejorar la calidad de la base de datos y eliminar segmentos de audio que no aporten información, se implementó un algoritmo para discriminar entre fragmentos correspondientes al habla y segmentos de ruido o silencio, eliminando estos últimos a partir de un análisis de la _Short Time Energy_ (STE) y el _Zero Crossing Rate_ (ZCR). Este procedimiento genera nuevos archivos de audio que contienen únicamente la información acústica relevante.
 
@@ -296,11 +296,11 @@ for (ruta_archivo in archivos) {
 ```
 
 
-## EXTRACCIÓN DE CARACTERÍSTICAS
+## 3. EXTRACCIÓN DE CARACTERÍSTICAS
 
 Para el tratamiento de señales de voz en modelos de clasificación, no resulta adecuado trabajar directamente con la señal de audio, ya que estos modelos requieren datos numéricos estructurados. Por este motivo, se lleva a cabo un proceso de extracción de características que permite representar la información relevante de la señal de forma numérica. Dichas características se emplearán posteriormente para el entrenamiento de los modelos.
 
-### Period pitch
+### 3.1. Period pitch
 
 El *period pitch* está directamente relacionado con la frecuencia fundamental de la voz, que corresponde a la vibración periódica más baja producida por las cuerdas vocales y constituye la base sobre la que se construyen el resto de componentes armónicos del habla. La frecuencia fundamental es especialmente relevante porque representa una característica estable de la voz y está estrechamente vinculada a la percepción de si una voz suena más grave o más aguda.
 
@@ -362,7 +362,7 @@ period_pitch <- function(signal, fs = NULL, fmin = 80, fmax = 300) {
 }
 ```
 
-### Coeficientes Mel (MFCC) y representación de la señal
+### 3.2. Coeficientes Mel (MFCC) y representación de la señal
 
 Como parte de la extracción de características espectrales, se calcularon los coeficientes cepstrales en escala Mel (MFCC), ampliamente utilizados en tareas de análisis de voz por su capacidad de capturar información relacionada con el timbre y la envolvente espectral. Los MFCC (coeficientes Mel) son características que resumen el timbre de la voz a partir de su espectro, usando una escala de frecuencias similar a la percepción humana (escala Mel). 
 
@@ -372,7 +372,7 @@ Además se calculan $\Delta$ y $\Delta\Delta$ son las derivadas temporales de lo
 
 
 
-### Centroide espectral
+### 3.3. Centroide espectral
 
 **Centroide espectral global**
 
@@ -448,9 +448,9 @@ spectral_centroid_12 <- function(w, n_parts = 12) {
 }
 ```
 
-## CONSTRUCCIÓN DEL CONJUNTO DE DATOS
+## 4. CONSTRUCCIÓN DEL CONJUNTO DE DATOS
 
-### Conjunto de datos general
+### 4.1. Conjunto de datos general
 
 Para organizar y analizar los 466 audios, se creó un dataframe que contiene las características y etiquetas de cada audio, donde denotamos: 
 
@@ -612,7 +612,7 @@ df_carpeta <- function(df, carpeta) {
 voces_df <- df_carpeta(voces_df, "Audios_finales_limp")
 ```
 
-### Conjunto de datos para detección de IA: MFCC
+### 4.2. Conjunto de datos para detección de IA: MFCC
 
 Para cada archivo de audio se aplicó un preprocesado común con el objetivo de asegurar la comparabilidad entre señales. En concreto, se convirtió cada audio a mono mediante la función `to_mono()`, promediando los canales izquierdo y derecho en caso de que la señal fuese estéreo. Después, se homogeneizó la frecuencia de muestreo a un valor fijo (16 kHz) mediante la función `resample_if_needed()`, ya que el cálculo de MFCC depende directamente de la escala de frecuencias y no es comparable si los audios están a distintas tasas de muestreo.
 
@@ -834,7 +834,7 @@ bad_rows <- apply(df_ml %>% select(-label), 1, function(r) any(is_bad(r)))
 train_df <- df_ml[!bad_rows, ]
 ```
 
-## ANÁLISIS EXPLORATORIO
+## 5. ANÁLISIS EXPLORATORIO
 
 Antes de aplicar los métodos de clasificación, se realizó un análisis exploratorio del conjunto de datos con el objetivo de comprender la distribución de las variables y detectar posibles patrones relevantes. Así, el conjunto de datos final está compuesto por 466 audios, con una distribución equilibrada entre voces femeninas (240) y masculinas (226), lo que reduce la posibilidad de sesgos derivados del desbalanceo de clases.
 
@@ -904,9 +904,9 @@ boxplot(centroide ~ origen + sexo,
 
 Al analizar la desviación típica del centroide espectral obtenida a partir de la segmentación temporal, se esperaba observar una mayor capacidad de separación entre voces humanas y generadas por inteligencia artificial, bajo la hipótesis de que las voces humanas presentan una mayor variabilidad espectral a lo largo del tiempo. Sin embargo, los resultados muestran un solapamiento considerable entre ambas clases, tanto en voces masculinas como femeninas, lo que indica que esta medida agregada, considerada de forma aislada, no resulta suficiente para discriminar de manera fiable entre ambos tipos de voz. Por si solo, los parametros del centroide segmentado no dan mucha información, no obstante, después los analizaremos todos juntos para ver si entre todos ellos en conjunto pueden proporcionar clasificaciones más robustas.
 
-## MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
+## 6. MODELOS DE CLASIFICACIÓN Y VALIDACIÓN
 
-### Clasificación del sexo
+### 6.1. Clasificación del sexo
 
 A partir del conjunto de características extraídas y del análisis exploratorio realizado, tenemos como objetivo la clasificación del sexo del hablante. De esta forma, se plantea el problema como una clasificación binaria y se emplea un modelo de regresión logística. Este tipo de modelo permite relacionar las características extraídas con la probabilidad de que una voz corresponda a un hablante masculino o femenino. 
 
@@ -972,7 +972,7 @@ Sin embargo, en el análisis exploratorio vimos que el diagrama de cajas del pit
 
 En conjunto, estos resultados refuerzan que el pitch y el centroide son los descriptores más relevantes para la clasificación del sexo, pero que la superposición natural de frecuencias humanas introduce un margen de error inevitable, explicando los puntos intermedios en la gráfica de predicciones.
 
-### Clasificación del origen (IA vs Humano): Coeficiente de Mel
+### 6.2. Clasificación del origen (IA vs Humano): Coeficiente de Mel
 
 Para tratar este problema de clasificación, se probaron diferentes datasets y dataframes, con los que se entrenó un modelo *SVM con kernel RBF*.
 
@@ -1255,7 +1255,7 @@ Esto puede deberse a que el diseño del dataset introduce una estructura muy rep
 
 En conclusión, los resultados obtenidos no son una evidencia sólida de que el modelo generalice a “cualquier” voz humana vs “cualquier” IA, porque el test probablemente comparte demasiada estructura con el entrenamiento.
 
-### Clasificación del acento
+### 6.3. Clasificación del acento
 
 Además de los clasficadores anteriores, se intentó abordar la identificación del acento de la voz, considerando tres categorías: español neutro, andaluz y argentino. 
 
@@ -1314,7 +1314,7 @@ Tras analizar los resultados, vimos que, aunque el modelo consigue ajustar los d
 
 Por lo tanto, este análisis no resulta concluyente y se incluye unicamente en el informe como demostración del estudio realizado.
 
-## CONCLUSIONES
+## 7. CONCLUSIONES
 
 El desarrollo del proyecto ha permitido demostrar que es posible analizar señales de voz y extraer de ellas información acústica suficiente para abordar con éxito distintas tareas de clasificación. 
 
